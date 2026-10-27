@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/mirror-Android%2013%2B%20for%20audio-blue" alt="Mirror audio">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-0.4.7-informational" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.5.0-informational" alt="Version">
   <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
@@ -19,7 +19,7 @@
 | 專案 | 角色 | 平台 | 狀態 |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.4.7** |
+| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.0** |
 | `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
 
 > 為什麼名字是「角色」而不是「架構」：x86/ARM 是發行檔的事，同一個專案可以同時出
@@ -1075,7 +1075,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 
 ## 目前狀態
 
-**已完成（0.4.7）**
+**已完成（0.5.0）**
 
 - `AdbClient` —— 遠端連線、長連線重用、`head -c` 串流傳檔、APK 安裝（含代按小米安裝確認框、
   帶進度回呼）、授權（撐住 + 重試兩階段）、例外分類（未授權 / TLS 被拒 / 埠沒開 / 逾時）、
