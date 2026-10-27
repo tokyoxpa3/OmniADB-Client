@@ -1513,8 +1513,8 @@ public class MirrorActivity extends Activity {
      *
      * <p>選單分兩段（API 28 以上會畫分隔線）：
      * <ol>
-     *   <li><b>對對方動手</b>：旋轉／跟隨本機方向／音量＋／音量－／電源／
-     *       關閉螢幕／開啟螢幕 —— 以前是五顆常駐按鈕</li>
+     *   <li><b>對對方動手</b>：旋轉／跟隨本機方向／音量／電源／關閉螢幕省電／
+     *       截圖／錄影 —— 以前是五顆常駐按鈕</li>
      *   <li><b>本機這端的設定</b>：貼上剪貼簿／畫質／常亮／音訊／重連</li>
      * </ol>
      *
@@ -1529,14 +1529,16 @@ public class MirrorActivity extends Activity {
         menu.getMenu().add(GROUP_REMOTE, MENU_FOLLOW, 1, R.string.menu_follow)
                 .setCheckable(true)
                 .setChecked(followEnabled());
-        menu.getMenu().add(GROUP_REMOTE, MENU_VOL_UP, 2, R.string.mirror_btn_vol_up);
-        menu.getMenu().add(GROUP_REMOTE, MENU_VOL_DOWN, 3, R.string.mirror_btn_vol_down);
+        menu.getMenu().add(GROUP_REMOTE, MENU_VOLUME, 2, R.string.menu_volume);
         menu.getMenu().add(GROUP_REMOTE, MENU_POWER, 4, R.string.mirror_btn_power);
-        // 關／開分開兩項，不做切換開關：狀態若和對方實際情況不同步（例如 App 上次
-        // 被強制停止，來不及把螢幕開回來），單一顆切換鈕會「按了更暗」。兩項都在，
-        // 隨時都能直接按「開回對方螢幕」救回來。
-        menu.getMenu().add(GROUP_REMOTE, MENU_SCREEN_OFF, 5, R.string.menu_screen_off);
-        menu.getMenu().add(GROUP_REMOTE, MENU_SCREEN_ON, 6, R.string.menu_screen_on);
+        // 一個勾選項，勾＝把對方的面板關掉（省電，鏡像照常）。
+        // 以前是「關閉／開啟」兩項並列，理由是怕本機狀態和對方不同步時，
+        // 單一顆切換鈕會「按了更暗」。但這裡送的一律是<b>絕對值</b>
+        // （勾→送關、取消→送開），根本不會有「切換錯方向」這回事；
+        // 兩項並列反而讓人每次都要先讀一遍才知道該按哪個。
+        menu.getMenu().add(GROUP_REMOTE, MENU_SCREEN_OFF, 5, R.string.menu_screen_off)
+                .setCheckable(true)
+                .setChecked(Settings.hostScreenOff(this));
         // 截圖放在「對對方動手」那一段：它抓的是<b>對方</b>的畫面（原生解析度、
         // 不含我們的工具列），不是「我這邊看到什麼」。
         menu.getMenu().add(GROUP_REMOTE, MENU_SCREENSHOT, 7, R.string.menu_screenshot);
@@ -1568,23 +1570,24 @@ public class MirrorActivity extends Activity {
                     toggleFollow();
                     item.setChecked(followEnabled());
                     return true;
-                case MENU_VOL_UP:
-                    onBarButton(s -> s.sendKey(24));       // KEYCODE_VOLUME_UP
-                    return true;
-                case MENU_VOL_DOWN:
-                    onBarButton(s -> s.sendKey(25));       // KEYCODE_VOLUME_DOWN
+                case MENU_VOLUME:
+                    showVolumeDialog();
                     return true;
                 case MENU_POWER:
                     // 這裡刻意用 KEYCODE_POWER（跟實體電源鍵一樣，會休眠、鎖屏），
-                    // 和上面兩個「只關顯示器」的選項不同：需要真的把對方叫醒／鎖屏時用這個。
+                    // 和上面「關閉螢幕省電」不同：需要真的把對方叫醒／鎖屏時用這個。
                     onBarButton(s -> s.sendKey(26));       // KEYCODE_POWER
                     return true;
-                case MENU_SCREEN_OFF:
-                    setHostScreen(false);
+                case MENU_SCREEN_OFF: {
+                    // 勾＝關閉省電，而且<b>記住</b>（下次連上自動套用）。
+                    // 送出去的永遠是絕對值：勾→關、取消→開，所以就算上一次
+                    // 來不及開回來，取消勾選一定能把對方救回亮著的狀態。
+                    boolean want = !Settings.hostScreenOff(this);
+                    Settings.setHostScreenOff(this, want);
+                    setHostScreen(!want);
+                    item.setChecked(want);
                     return true;
-                case MENU_SCREEN_ON:
-                    setHostScreen(true);
-                    return true;
+                }
                 case MENU_SCREENSHOT:
                     takeScreenshot();
                     return true;
@@ -1629,8 +1632,7 @@ public class MirrorActivity extends Activity {
 
     private static final int MENU_ROTATE = 1;
     private static final int MENU_FOLLOW = 2;
-    private static final int MENU_VOL_UP = 3;
-    private static final int MENU_VOL_DOWN = 4;
+    private static final int MENU_VOLUME = 3;
     private static final int MENU_POWER = 5;
     private static final int MENU_PASTE = 6;
     private static final int MENU_QUALITY = 7;
@@ -1641,6 +1643,136 @@ public class MirrorActivity extends Activity {
     private static final int MENU_SCREEN_ON = 12;
     private static final int MENU_SCREENSHOT = 13;
     private static final int MENU_RECORD = 14;
+
+    // ================================================================== 音量
+
+    /**
+     * 對方音量的調整面板。
+     *
+     * <p><b>為什麼不是選單裡的兩顆「音量＋／音量－」</b>：PopupMenu 點一下就會關掉，
+     * 所以調 5 格要把選單開 5 次。音量這種東西本來就是「按住連續調」的操作，
+     * 一次一格根本不能用。
+     *
+     * <p>所以做成一個不會自己關掉的面板：點一下走一格，<b>按住就連續走</b>
+     * （400 ms 後開始，每 120 ms 一格），放手就停。手指離開按鈕之後面板還在，
+     * 可以再按、也可以直接按旁邊的「關閉」。
+     *
+     * <p>不顯示絕對音量：要拿到對方真實音量得去讀 {@code dumpsys audio}，
+     * 每個 ROM 的格式都不一樣，而且我們送的是相對的按鍵事件（{@code KEYCODE_VOLUME_UP}），
+     * 兩邊對不上反而更 confusing。看到畫面／聽到聲音的變化就是回饋。
+     */
+    private void showVolumeDialog() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER);
+        box.setPadding(dp(24), dp(8), dp(24), 0);
+
+        // 兩個按鈕共用同一個「正在連發的那個任務」：換手按另一顆時，
+        // 舊的那條要停掉，不然兩邊會同時連發。
+        final Runnable[] active = new Runnable[1];
+
+        Button down = volumeButton("−", 25, active);     // KEYCODE_VOLUME_DOWN
+        Button up = volumeButton("＋", 24, active);      // KEYCODE_VOLUME_UP
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        lp.setMargins(dp(6), 0, dp(6), 0);
+        box.addView(down, lp);
+        box.addView(up, new LinearLayout.LayoutParams(lp));
+
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle(R.string.menu_volume)
+                .setView(box)
+                .setMessage(R.string.volume_hint)
+                .setPositiveButton(R.string.close, null)
+                .create();
+        // 面板關掉時一定要把連發停掉 —— 否則那個 Runnable 會一直往對方送音量鍵，
+        // 使用者已經離開畫面了還在調音量（這種事只有自己踩過才會記得加）。
+        dlg.setOnDismissListener(d -> {
+            if (active[0] != null) {
+                ui.removeCallbacks(active[0]);
+                active[0] = null;
+            }
+        });
+        dlg.show();
+    }
+
+    /**
+     * 一顆會連發的音量鈕。
+     *
+     * <p>用 {@link View.OnTouchListener} 而不是 {@code setOnClickListener}：
+     * 點擊事件要等手指抬起來才來，而這裡要的是「按下去就送第一格」。
+     *
+     * @param active 目前正在連發的任務（兩顆按鈕共用，換手時要停掉舊的）
+     */
+    private Button volumeButton(String label, int keyCode, Runnable[] active) {
+        Button b = new Button(this);
+        b.setText(label);
+        b.setAllCaps(false);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
+        b.setPadding(0, dp(10), 0, dp(10));
+
+        // 連發的節奏：先送一格（手指一碰就有反應），停 400 ms 還沒放開才開始連發，
+        // 之後每 120 ms 一格。400 ms 是「刻意按一下」和「我要一直調」的分界。
+        final Runnable[] tick = new Runnable[1];
+        b.setOnTouchListener((v, e) -> {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (active[0] != null) {
+                        ui.removeCallbacks(active[0]);
+                        active[0] = null;
+                    }
+                    sendVolume(keyCode);
+                    tick[0] = new Runnable() {
+                        @Override
+                        public void run() {
+                            sendVolume(keyCode);
+                            ui.postDelayed(this, REPEAT_INTERVAL_MS);
+                        }
+                    };
+                    active[0] = tick[0];
+                    ui.postDelayed(tick[0], REPEAT_DELAY_MS);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (tick[0] != null) {
+                        ui.removeCallbacks(tick[0]);
+                        if (active[0] == tick[0]) active[0] = null;
+                        tick[0] = null;
+                    }
+                    v.performClick();       // 無障礙服務要知道這裡「被按了」
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        return b;
+    }
+
+    private void sendVolume(int keyCode) {
+        ScrcpySession s = session;
+        if (s == null || !s.isRunning()) {
+            Toast.makeText(this, R.string.mirror_connecting, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        s.sendKey(keyCode);
+        // 刻意不在這裡 showBar()：連發時每一格都叫一次工具列，等於在畫面
+        // 正在解碼的時候插一堆 layout，實測會把連發的節奏拖慢一倍。
+        // 面板本身就是現在該看的東西，工具列等面板關掉再說。
+    }
+
+    /** 按住多久之後開始連發。 */
+    private static final long REPEAT_DELAY_MS = 400;
+    /**
+     * 連發的間隔。
+     *
+     * <p>100 ms 而不是更短：主執行緒同時在解 60fps 的鏡像，postDelayed 會跟著延遲，
+     * 實測 120 ms 排出來大約 250 ms 才真的跑一次。再往下調只是堆積任務，
+     * 送出去的速度不會變快，放手之後還會多送好幾格。
+     */
+    private static final long REPEAT_INTERVAL_MS = 100;
 
     // ================================================================== 打字
 
@@ -2277,6 +2409,11 @@ public class MirrorActivity extends Activity {
                                 status.setVisibility(View.GONE);
                                 setTitle(getString(R.string.mirror_title,
                                         session == null ? host : session.deviceName()));
+                                // 勾過「關閉螢幕省電」的人，每次連上都自動套用。
+                                // 放在 onReady 之後：控制通道要通了才送得出去。
+                                if (Settings.hostScreenOff(MirrorActivity.this)) {
+                                    setHostScreen(false);
+                                }
                                 runPendingTestInput();
                             });
                         }

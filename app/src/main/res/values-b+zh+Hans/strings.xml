@@ -205,8 +205,6 @@
     <string name="mirror_follow_on">已跟随本机方向</string>
     <string name="mirror_follow_off">已停止跟随，请用手动旋转</string>
     <string name="mirror_host_locked">对方 App 锁定了方向，本机保持与它一致</string>
-    <string name="mirror_btn_vol_up">音量＋</string>
-    <string name="mirror_btn_vol_down">音量－</string>
     <string name="mirror_btn_power">电源</string>
     <string name="mirror_btn_close">退出</string>
 
@@ -223,8 +221,9 @@
     <string name="menu_stay_awake">对方屏幕保持常亮</string>
     <string name="menu_audio">音频…</string>
     <string name="menu_reconnect">重新连接</string>
-    <string name="menu_screen_off">关闭对方屏幕（省电）</string>
-    <string name="menu_screen_on">开启对方屏幕</string>
+    <string name="menu_screen_off">关闭屏幕省电</string>
+    <string name="menu_volume">音量</string>
+    <string name="volume_hint">长按可连续调整</string>
     <string name="menu_screenshot">截图（存到本机相册）</string>
     <string name="menu_record">录屏（存到本机相册）</string>
     <string name="menu_record_stop">停止录屏</string>

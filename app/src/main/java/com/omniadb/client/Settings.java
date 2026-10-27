@@ -19,6 +19,7 @@ final class Settings {
     private static final String KEY_QUALITY = "quality";
     private static final String KEY_AUDIO_MODE = "audio_mode";
     private static final String KEY_STAY_AWAKE = "stay_awake";
+    private static final String KEY_HOST_SCREEN_OFF = "host_screen_off";
 
     /** 畫質三檔。數字只是索引，實際參數見 {@link #video(Context)}。 */
     static final int QUALITY_LOW = 0;
@@ -117,5 +118,24 @@ final class Settings {
 
     static void setStayAwake(Context c, boolean on) {
         prefs(c).edit().putBoolean(KEY_STAY_AWAKE, on).apply();
+    }
+
+    /**
+     * 連上之後要不要<b>自動把對方的面板關掉</b>（省電，鏡像照常）。
+     *
+     * <p>預設 false：這是「對別人的手機動手」，不該預設就做。但一旦勾過就記住 ——
+     * 會勾這個的人，理由通常是固定的（例如把舊手機掛著當監看螢幕），
+     * 每次連上都要再點一次只是折磨。
+     *
+     * <p>注意這是<b>偏好</b>不是「現在的狀態」：對方此刻是亮是暗仍然由
+     * {@link ScrcpySession#isDisplayPowerOff()} 決定。兩者分開才不會出現
+     * 「上次沒開回來，這次一連上就以為已經關著」。
+     */
+    static boolean hostScreenOff(Context c) {
+        return prefs(c).getBoolean(KEY_HOST_SCREEN_OFF, false);
+    }
+
+    static void setHostScreenOff(Context c, boolean off) {
+        prefs(c).edit().putBoolean(KEY_HOST_SCREEN_OFF, off).apply();
     }
 }

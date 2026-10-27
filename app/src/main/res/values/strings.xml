@@ -205,8 +205,6 @@
     <string name="mirror_follow_on">Following this phone\'s orientation</string>
     <string name="mirror_follow_off">Orientation sync off — use Rotate</string>
     <string name="mirror_host_locked">The host app locks its orientation — keeping this screen aligned with it</string>
-    <string name="mirror_btn_vol_up">Vol+</string>
-    <string name="mirror_btn_vol_down">Vol−</string>
     <string name="mirror_btn_power">Power</string>
     <string name="mirror_btn_close">Exit</string>
 
@@ -223,8 +221,9 @@
     <string name="menu_stay_awake">Keep host screen on</string>
     <string name="menu_audio">Audio…</string>
     <string name="menu_reconnect">Reconnect</string>
-    <string name="menu_screen_off">Turn host screen off (saves power)</string>
-    <string name="menu_screen_on">Turn host screen on</string>
+    <string name="menu_screen_off">Turn off host screen (saves power)</string>
+    <string name="menu_volume">Volume</string>
+    <string name="volume_hint">Hold to keep adjusting</string>
     <string name="menu_screenshot">Screenshot host screen</string>
     <string name="menu_record">Record host screen</string>
     <string name="menu_record_stop">Stop recording</string>

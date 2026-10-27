@@ -1077,6 +1077,18 @@ final class ScrcpySession implements Closeable {
         return queued;
     }
 
+    /**
+     * 對方顯示器現在是不是被我們關掉的。
+     *
+     * <p>選單那個「關閉螢幕省電」的勾要跟它對齊 —— 勾＝面板關、不勾＝面板亮。
+     * 注意這只是<b>我們的認知</b>（這次連線送過什麼）；App 若被強制停止，
+     * 對方會留在關閉狀態而這裡是 false。所以送出的一律是<b>絕對值</b>
+     * （見 {@link #setScreenPowerMode}），取消勾選一定送「開」，不會愈按愈暗。
+     */
+    boolean isDisplayPowerOff() {
+        return displayPowerOff;
+    }
+
     private boolean write(byte[] data) {
         if (!running || controlOut == null) return false;
         // 佇列滿了（網路卡住）就丟掉這一筆，不要讓 UI 執行緒跟著卡住。
