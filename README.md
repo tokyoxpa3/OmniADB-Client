@@ -11,7 +11,7 @@
 | 專案 | 角色 | 平台 | 狀態 |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.4.5** |
+| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.4.6** |
 | `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
 
 > 為什麼名字是「角色」而不是「架構」：x86/ARM 是發行檔的事，同一個專案可以同時出
@@ -1039,7 +1039,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 
 ## 目前狀態
 
-**已完成（0.4.5）**
+**已完成（0.4.6）**
 
 - `AdbClient` —— 遠端連線、長連線重用、`head -c` 串流傳檔、APK 安裝（含代按小米安裝確認框、
   帶進度回呼）、授權（撐住 + 重試兩階段）、例外分類（未授權 / TLS 被拒 / 埠沒開 / 逾時）、
@@ -1066,6 +1066,9 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 - `VideoDecoder` —— MediaCodec 解到 Surface、從 config 包取 csd、自己解 SPS 拿即時解析度、
   Surface 可抽換
 - `H264` —— Annex-B 拆 NAL、SPS 尺寸解析
+- `Recorder` —— 錄影：把影像串流的 H.264 **原樣**封裝成 MP4（`MediaMuxer`，不重編碼），
+  音訊從 `AudioSession` 旁路 raw PCM 再編 AAC-LC 進同一顆 Muxer，存到 `Movies/OmniADB/`；
+  靜止畫面補幀、開錄先逼 IDR、旋轉自動換檔（見下面「錄影」）
 - `MirrorActivity` —— 等比例 SurfaceView、多點觸控、自動收起的工具列（會讓開狀態列與挖孔）、
   剪貼簿同步的掛接與除錯用預置、**本機輸入法直通**（隱形接收器 + 自維護緩衝 + 兩條送出通道）、
   實體鍵盤直通、**關閉／開啟對方實體螢幕**（`TYPE_SET_DISPLAY_POWER`：面板不亮、串流照常，
@@ -1122,18 +1125,52 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 對方會留在 `powerMode=Off`，下次連上按「開啟對方螢幕」就能救回來；
 單一顆切換鈕會因為本機狀態過期而出現「按了更暗」。
 
+#### 錄影：不重編碼，但要自己補時間軸
+
+影像走「旁路」而不是「重編碼」：`ScrcpySession` 讀到影像 socket 的封包後，除了丟給
+`VideoDecoder` 解畫面，也原樣交給 `Recorder`。寫進 MP4 的就是對方編碼器吐出來的 H.264，
+畫質、碼率、CPU 都跟串流一模一樣，邊看邊錄不掉幀。
+
+`MediaMuxer` 收 annex-B 是合法的 —— 起始碼（`00 00 00 01`）它自己會轉成 MP4 要的
+長度前綴。track 的 csd-0 / csd-1 從 config 包裡的 SPS / PPS 拆（`H264.splitCsd`），
+所以不需要另外找參數集。
+
+**音訊是另一條 session**，但它跟影像其實同源：兩邊都是對方機器上的 `app_process`，
+封包裡的 pts 都是 `System.nanoTime()/1000`（微秒、開機時間）。所以只要減掉**同一個**
+origin，兩條軌就天然對齊 —— 不需要任何脣形同步的補償。實作上是
+`AudioSession` 多一個 `PcmTap`，在寫進 `AudioPlayer` 之前把 raw PCM 也遞一份出來，
+`Recorder` 收下後餵給 `MediaCodec` 編 AAC-LC（48 kHz / 2ch / 128 kbps），再寫進同一顆 Muxer。
+
+> MP4 的音軌一定要有 AudioSpecificConfig，而 `MediaCodec` 只有在**真的收到資料之後**
+> 才會經 `INFO_OUTPUT_FORMAT_CHANGED` 吐出來。所以開檔時先餵一小段靜音（4 KB）把
+> csd 逼出來，不然 `addTrack` 會拿到一份沒有 csd 的 format。
+
+**最大的坑：畫面沒變化就沒有幀。** scrcpy 的編碼器是「有差異才產幀」，靜止畫面下
+11.7 秒只會拿到 11 幀 —— 直接封裝出來的 MP4 時間軸只有 1.1 秒，播完就沒了。
+解法是用上一筆壓縮資料把空隙補到 5 fps（`fill()`），收檔前再把「靜止的尾巴」補到現在。
+同一個測試因此變成 55 幀 / 10.0 秒。補的是同一張 IDR/P 的位元組，解碼結果正確、體積幾乎不變。
+
+另外三件必須做的事：
+
+| 問題 | 做法 |
+|---|---|
+| 按下錄影時多半不在 GOP 起點，第一幀不是 IDR → 開頭花屏 | 先送 `TYPE_RESET_VIDEO`（控制訊息 `17`）逼對方重開編碼器，380 ms 後就有 config + IDR；`Recorder` 端也「關鍵幀之前一律丟棄」 |
+| `MediaMuxer` 的 track 尺寸在 `addTrack` 後就固定，旋轉後寫入會壞 | 偵測 config 包的尺寸變化就收掉當前檔、開下一段（`_2.mp4`） |
+| 收檔順序錯了會讓 muxer 卡住 | 先送音訊 EOS 把 `MediaCodec` 榨乾 → `muxer.stop()` → 最後才 `release()` |
+
+檔案存在 `Movies/OmniADB/`（MediaStore，`IS_PENDING` 收尾），API < 29 退回 App 專屬目錄。
+切換畫質會重建連線，所以錄影會在那裡停掉並用 toast 說明。
+
 **下一步**
 
-1. 錄影 —— 影像可以從鏡像串流旁路（可邊看邊錄、隨時停），但音訊是**另一條 session**，
-   兩邊時間軸起點不同，要自己對齊再封裝成 mp4。這是目前最重的一塊
-2. 前景服務 —— 檔案傳輸中切到別的 App 就會斷（`onStop` 會關連線），
+1. 前景服務 —— 檔案傳輸中切到別的 App 就會斷（`onStop` 會關連線），
    長傳輸需要它撐著；鏡像那邊現在只靠子母畫面
-3. 剪貼簿只處理純文字 —— 圖片 / 檔案（`ClipData` 其他 MIME）目前不傳
-4. 小米安裝確認框的代按偶爾還是會輸給 10 秒倒數（`INSTALL_FAILED_USER_RESTRICTED`）——
+2. 剪貼簿只處理純文字 —— 圖片 / 檔案（`ClipData` 其他 MIME）目前不傳
+3. 小米安裝確認框的代按偶爾還是會輸給 10 秒倒數（`INSTALL_FAILED_USER_RESTRICTED`）——
    現在只會在對話框裡解釋原因，還沒做到「重試一次」
-5. 檔案總管還缺：拖曳搬移（現在用剪貼簿代替）、影片縮圖（遠端影片太大，現在只有 🎬 圖示）、
+4. 檔案總管還缺：拖曳搬移（現在用剪貼簿代替）、影片縮圖（遠端影片太大，現在只有 🎬 圖示）、
    覆蓋前先預覽「兩邊的大小／時間」好判斷該不該蓋
-6. 沒有測試 —— `test/`、`androidTest/` 都還是空的，現在全靠實機驗證
+5. 沒有測試 —— `test/`、`androidTest/` 都還是空的，現在全靠實機驗證
 
 ---
 
@@ -1145,6 +1182,16 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 ```
 
 需要 **JDK 17** 與 **Android SDK**（`compileSdk 35`）。
+
+```bash
+./gradlew assembleRelease
+# 產物：app/build/outputs/apk/release/app-release.apk（debug 金鑰簽章，可直接 sideload）
+```
+
+> 手機上裝不起來、又不想清資料的話，用 `./gradlew assembleDebug -PdevSuffix`：包名會變成
+> `com.omniadb.client.dev`，可以和原本那顆並存。會撞到 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
+> 是因為 debug 簽章是**每台開發機一份**（`~/.android/debug.keystore`），不是版本問題；
+> `pm uninstall -k` 也救不回來（保留的套件記錄連簽章一起留著）。
 
 `local.properties` 不進版控（裡面是本機絕對路徑），新 clone 下來要先自己建一份：
 
