@@ -6,14 +6,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/mirror-Android%2013%2B%20for%20audio-blue" alt="Mirror audio">
+  <img src="https://img.shields.io/badge/mirror%20audio-Host%20Android%2013%2B-blue" alt="Mirror audio (host side)">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-0.5.0-informational" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.5.1-informational" alt="Version">
   <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
 <p align="center">
-  <img src="shots/mirror1.png" width="760" alt="A 機全螢幕顯示 B 機桌面，上方是鏡像工具列">
+  <img src="shots/mirror1.png" width="240" alt="A 機全螢幕顯示 B 機桌面，上方是鏡像工具列">
 </p>
 
 `OmniADB` 家族的第三塊拼圖，也是目前的主力：
@@ -21,7 +21,7 @@
 | 專案 | 角色 | 平台 | 狀態 |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.0** |
+| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.1** |
 | `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
 
 ## 要解決的問題
@@ -30,6 +30,15 @@
 實際場景常常不是這樣：手機放在架上、在另一個房間、或根本沒有電腦在旁邊。
 
 所以把整套流程搬到手機上 —— 兩支手機、同一個 Wi-Fi，就能掃描、配對、安裝、鏡像。
+
+## 畫面
+
+|  |  |  |
+|---|---|---|
+| <img src="shots/main.png" width="200" alt="裝置清單，一台已連上的手機卡片"> | <img src="shots/mirror_settings.png" width="200" alt="鏡像裡的設置選單，畫質與音訊相鄰"> | <img src="shots/files.png" width="200" alt="檔案總管，本機與對方兩欄，底部是剪貼簿列"> |
+| **主畫面**<br>掃到就直接點「鏡像」 | **鏡像裡的設置**<br>畫質與音訊放在一起 | **檔案總管**<br>本機／對方同一個畫面 |
+| <img src="shots/transfer.png" width="200" alt="傳輸進度框，顯示檔數與已等待秒數"> | <img src="shots/keyboard.png" width="200" alt="遠端輸入：對方畫面縮小，下方是本機鍵盤"> | <img src="shots/thumbs.png" width="200" alt="遠端資料夾裡的圖片縮圖"> |
+| **傳輸進度**<br>檔數與已等待秒數 | **遠端輸入**<br>用本機輸入法打對方的字 | **圖片縮圖**<br>遠端檔案也看得到預覽 |
 
 ---
 
@@ -129,14 +138,19 @@ A 機開 App → 清單直接顯示 B（含電量、溫度、解析度）→ 點
 
 | 限制 | 說明 |
 |---|---|
-| 被控端要 Android 8.0+ | 基本功能的下限 |
-| **鏡像音訊要 Android 13+** | `AudioPlaybackCapture` 的硬門檻；12 以下只能看畫面 |
+| 本機（控制端）要 Android 8.0+ | 基本功能的下限；本機版本再舊也不影響音訊 |
+| 被控端要 Android 8.0+ | 畫面、控制、檔案的下限 |
+| **鏡像音訊要「被控端」Android 13+** | `AudioPlaybackCapture` 的硬門檻落在被控端。被控端 12 以下只有畫面；本機是 8 還是 15 都一樣 |
 | 只抓得到媒體與遊戲聲音 | 通知音、通話、鈴聲抓不到 |
 | App 可以拒絕被錄 | `allowAudioPlaybackCapture=false`（DRM 影音、少數播放器）—— 這時工具列的喇叭鈕會變暗 |
 | 小米 / HyperOS 安裝要手動確認 | 系統會跳「繼續安裝」，10 秒倒數偶爾會贏過自動代按 |
 | 長傳輸中切到別的 App 會斷 | 還沒有前景服務（見下面「已知問題」） |
 | 剪貼簿只支援純文字 | 圖片與檔案目前不傳 |
 | 需要同一個 Wi-Fi | 走的是 ADB over TCP，不是雲端穿透 |
+
+> 音訊的版本門檻在**被控端**（誰把聲音交出來），不在本機（誰在聽）。
+> 本機只負責把收到的 PCM 寫進 `AudioTrack` —— 那件事舊到 Android 4.0 就能做。
+> 所以「A 機控 B 機」時，**只有 B 機的版本要緊**。
 
 ## 已知問題
 

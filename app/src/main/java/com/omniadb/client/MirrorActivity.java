@@ -1565,7 +1565,6 @@ public class MirrorActivity extends Activity {
                 recording ? R.string.menu_record_stop : R.string.menu_record);
 
         menu.getMenu().add(GROUP_SETTINGS, MENU_PASTE, 8, R.string.menu_paste);
-        menu.getMenu().add(GROUP_SETTINGS, MENU_QUALITY, 9, R.string.menu_quality);
         // 「保持常亮」在省電模式下<b>沒有作用</b>：面板已經被我們關掉了，
         // FLAG_KEEP_SCREEN_ON 不會讓任何看得見的東西發生變化。留著可點只會讓人
         // 以為這兩個設定在互相打架，所以灰掉、標題換成「（省電中）」。
@@ -1576,12 +1575,15 @@ public class MirrorActivity extends Activity {
         // 標題只換成短字串，<b>不要想用換行</b>：PopupMenu 的標題 TextView 是
         // singleLine，`\n` 會被吞掉、整串變成省略號（實測「對方螢幕保持常亮 已被螢幕…」）。
         boolean hostScreenOff = Settings.hostScreenOff(this);
-        MenuItem awakeItem = menu.getMenu().add(GROUP_SETTINGS, MENU_AWAKE, 10,
+        MenuItem awakeItem = menu.getMenu().add(GROUP_SETTINGS, MENU_AWAKE, 9,
                 hostScreenOff ? R.string.menu_stay_awake_superseded : R.string.menu_stay_awake);
         awakeItem.setCheckable(true).setChecked(Settings.stayAwake(this));
         if (hostScreenOff) {
             awakeItem.setEnabled(false);
         }
+        // 畫質與音訊相鄰：兩者都是「串流參數」（一條管影像、一條管聲音），
+        // 放在一起才看得出是同類。保持常亮因此往上挪一格，不再夾在中間。
+        menu.getMenu().add(GROUP_SETTINGS, MENU_QUALITY, 10, R.string.menu_quality);
         menu.getMenu().add(GROUP_SETTINGS, MENU_AUDIO, 11, R.string.menu_audio);
         menu.getMenu().add(GROUP_SETTINGS, MENU_RECONNECT, 12, R.string.menu_reconnect);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

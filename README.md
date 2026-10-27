@@ -7,14 +7,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/mirror-Android%2013%2B%20for%20audio-blue" alt="Mirror audio">
+  <img src="https://img.shields.io/badge/mirror%20audio-Host%20Android%2013%2B-blue" alt="Mirror audio (host side)">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-0.5.0-informational" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.5.1-informational" alt="Version">
   <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
 <p align="center">
-  <img src="shots/mirror1.png" width="760" alt="Phone A showing phone B's desktop full screen, with the mirror toolbar on top">
+  <img src="shots/mirror1.png" width="240" alt="Phone A showing phone B's desktop full screen, with the mirror toolbar on top">
 </p>
 
 The third piece of the `OmniADB` family, and the one that gets the most use:
@@ -22,7 +22,7 @@ The third piece of the `OmniADB` family, and the one that gets the most use:
 | Project | Role | Platform | Status |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | Host side — keeps the ADB port pinned, comes back after reboot | Android | ✅ Released |
-| **`OmniADB-Client`** | **Controller — phone A drives phone B** | **Android** | **✅ 0.5.0** |
+| **`OmniADB-Client`** | **Controller — phone A drives phone B** | **Android** | **✅ 0.5.1** |
 | `OmniADB` (Python) | Desktop console / multi-device wall | Win / mac / Linux | ⏸ Shelved |
 
 ## The problem
@@ -33,6 +33,15 @@ there's simply no computer around.
 
 So the whole flow moved onto the phone itself — two phones on the same Wi-Fi are enough to
 scan, pair, install and mirror.
+
+## Screenshots
+
+|  |  |  |
+|---|---|---|
+| <img src="shots/main.png" width="200" alt="Device list with one connected phone"> | <img src="shots/mirror_settings.png" width="200" alt="Settings menu inside the mirror, quality next to audio"> | <img src="shots/files.png" width="200" alt="File manager with this phone and the host side by side"> |
+| **Main screen**<br>Tap “Mirror” on a device you scanned | **Settings in the mirror**<br>Quality and audio sit together | **File manager**<br>Both phones in one view |
+| <img src="shots/transfer.png" width="200" alt="Transfer progress dialog with file count and elapsed time"> | <img src="shots/keyboard.png" width="200" alt="Remote input: host screen shrinks, local keyboard below"> | <img src="shots/thumbs.png" width="200" alt="Image thumbnails inside a remote folder"> |
+| **Transfer progress**<br>File count and elapsed seconds | **Remote input**<br>Type with your own keyboard | **Thumbnails**<br>Remote images preview too |
 
 ---
 
@@ -135,14 +144,19 @@ Some of these are Android's hard limits, not missing features:
 
 | Limitation | Why |
 |---|---|
-| Host needs Android 8.0+ | Baseline for the app |
-| **Mirror audio needs Android 13+** | `AudioPlaybackCapture` only exists from 13; below that you get video only |
+| This phone (the controller) needs Android 8.0+ | Baseline for the app; its version never affects audio |
+| Host (the controlled device) needs Android 8.0+ | Baseline for video, control and files |
+| **Mirror audio needs the *host* on Android 13+** | `AudioPlaybackCapture` is a host-side limit — below 13 the host streams video only |
 | Media and game audio only | Notifications, calls and ringtones can't be captured |
 | Apps may opt out | `allowAudioPlaybackCapture=false` (DRM content, a few players) — the sound button dims when this happens |
 | Xiaomi / HyperOS asks for confirmation | The system shows "Continue install"; its 10-second countdown occasionally beats the auto-tap |
 | Long transfers die if you leave the app | No foreground service yet (see Known issues) |
 | Clipboard is text only | Images and files aren't transferred |
 | Same Wi-Fi required | This is ADB over TCP, not a cloud relay |
+
+> The audio version limit sits on the **host** (the device handing over the sound), not on the
+> controller. The controller only writes incoming PCM into `AudioTrack`, which has worked since
+> Android 4.0 — so when mirroring A → B, **only B's version matters**.
 
 ## Known issues
 

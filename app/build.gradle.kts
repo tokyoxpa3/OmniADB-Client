@@ -10,6 +10,8 @@ android {
         applicationId = "com.omniadb.client"
         minSdk = 26
         targetSdk = 34
+        // 0.5.1：設置選單「畫質」與「音訊」改成相鄰（保持常亮往上挪一格）；
+        //        README 補上六張截圖、主圖縮小到 240px
         // 0.5.0：首個 GitHub 公開發布版本。連線時不再自動「補 play」（暫停中的
         //        播放器不會自己開播）；靜音↔有聲的切換照舊補。
         //        省電模式下「保持常亮」灰掉並改標題
@@ -22,8 +24,8 @@ android {
         // 0.4.0：檔案總管（SYNC 協定：列目錄／雙向傳檔）＋ 對方畫面截圖
         // 0.3.4：對方實體螢幕可關／開（設置選單），離線前自動開回
         // 0.3.3：工具列收成七顆（旋轉／跟隨／音量／電源進「設置」）、換新圖示
-        versionCode = 18
-        versionName = "0.5.0"
+        versionCode = 19
+        versionName = "0.5.1"
 
         // 實測用逃生門：`./gradlew assembleDebug -PdevSuffix` 會把包名改成
         // com.omniadb.client.dev，可以和手機上已經裝好的正式包並存。
