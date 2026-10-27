@@ -11,7 +11,7 @@
 | 專案 | 角色 | 平台 | 狀態 |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.4.6** |
+| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.4.7** |
 | `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
 
 > 為什麼名字是「角色」而不是「架構」：x86/ARM 是發行檔的事，同一個專案可以同時出
@@ -437,9 +437,15 @@ W OmniADB-Client: 音訊連續 5 秒全零 —— 對方沒在播，或那支 Ap
 > 「⋯ → 音訊…」裡當三選一；而工具列那顆按鈕在 `AUDIO_OFF` 時顯示「無聲」，
 > 按下去是**把 session 接回來**（畫面不動）。
 
-> **關閉也要補 play**：收掉 session 同樣是一次路由切換（REMOTE_SUBMIX → SPEAKER），
-> 一樣會發 `ACTION_AUDIO_BECOMING_NOISY`，ExoPlayer 系 App 收到就暫停且不自己恢復。
-> 所以關閉後也無條件補一次 `dispatch play`，否則「一選不要聲音，對方影片就停住」。
+> **切換時要補 play，連線時不要。** 關掉舊 session 同樣是一次路由切換
+> （REMOTE_SUBMIX → SPEAKER），一樣會發 `ACTION_AUDIO_BECOMING_NOISY`，ExoPlayer 系
+> App 收到就暫停且不自己恢復 —— 所以「靜音↔有聲」與「關閉聲音」都會補一次
+> `dispatch play`，否則「一開聲音／一選不要聲音，對方影片就停住」。
+>
+> 但**連線後的第一次啟動不補**：那時沒有舊 session 可關，不會發生上面那次搬移，
+> 沒有東西要救；送了反而會把使用者**刻意暫停**的播放器叫起來（實測：一連上，
+> 暫停中的 YouTube 就自己開始播）。判斷條件就是 `applyHostAudible()` 裡的
+> `old != null`。代價仍然存在 —— 使用者刻意暫停之後才切換聲音，會被這一下叫回播放。
 
 沒有音訊串流（對方 < Android 13、或擷取被拒絕）時那顆按鈕會變暗，按下去會明講
 「對方沒有送出音訊」—— 免得變成「按了沒反應」這種最難查的故障。
@@ -1061,7 +1067,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 
 ## 目前狀態
 
-**已完成（0.4.6）**
+**已完成（0.4.7）**
 
 - `AdbClient` —— 遠端連線、長連線重用、`head -c` 串流傳檔、APK 安裝（含代按小米安裝確認框、
   帶進度回呼）、授權（撐住 + 重試兩階段）、例外分類（未授權 / TLS 被拒 / 埠沒開 / 逾時）、
@@ -1103,8 +1109,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 **實機驗證（Samsung SM-G9810 控 POCO 2412DPC0AG / Android 15）**
 
 握手 `576x1280`、`OMX` 硬解、點 Chrome 的 ⋮ 真的開出選單、按「主頁」對方回桌面。
-截圖 `shots/mirror1.png`（工具列 + 桌面）、`mirror2.png`（觸控點開 Chrome 選單）、
-`mirror3.png`（網頁鏡像）、`mirror4.png`（鏡像中的微信登入頁）。
+截圖 `shots/mirror1.png`（工具列 + 桌面）。
 
 生命週期也量過：從裝置卡片點「鏡像」到 `MirrorActivity` 出現在 858 ms 內；
 按返回離開後對方機器上的 `app_process` 歸零（沒有孤兒進程），
@@ -1120,8 +1125,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 | `adb shell input text 'zz'`（實體鍵盤那條） | `zz` | `TextWatcher` → `TYPE_INJECT_TEXT` |
 
 截圖 `shots/typing_keyboard.png`（按下「鍵盤」：工具列、縮小後的對方畫面、本機注音鍵盤、
-提示氣泡）、`typing_cn.png`（注音選「你」後出現在對方搜尋框）、
-`typing_ascii.png`（英文 `ABC` 直接注入）。
+提示氣泡）。
 
 授權流程量過（全新金鑰、5555 明文埠）：
 
