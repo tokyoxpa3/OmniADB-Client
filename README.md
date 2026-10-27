@@ -721,6 +721,12 @@ STAT（用 `mode == 0` 判斷）；adbd 送 `FAIL` 之後會**直接收掉連線
 **返回鍵的順序是「取消選取 → 上一層 → 才離開」**。在 `/sdcard/DCIM/Camera`
 按返回卻整頁關掉，要回去得從頭點進來，沒有一個檔案總管是這樣。
 
+**退到本機最上層之後再按返回，開的是系統的資料夾選擇器**，不是離開。理由很單純：
+在根目錄按返回最常發生的情況就是「我當初挑錯根目錄」，而挑根目錄的入口藏在右上角的
+`⋮` 裡，沒人找得到。為了還留一條離開的路，**取消之後再按一次返回才真的關掉**
+（`rootBackUsed`，只要又進出過任何一層就歸零）。遠端那邊沒有這個問題 ——
+它的根目錄 `/` 是固定的，退到底就是離開。
+
 **排序**：名稱 A→Z／Z→A、大小、修改時間，記在使用者偏好裡。**目錄永遠排前面** ——
 照大小排的話目錄的 inode 大小（通常 4096）會讓一堆資料夾散在檔案中間。
 
@@ -1068,7 +1074,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 - `H264` —— Annex-B 拆 NAL、SPS 尺寸解析
 - `Recorder` —— 錄影：把影像串流的 H.264 **原樣**封裝成 MP4（`MediaMuxer`，不重編碼），
   音訊從 `AudioSession` 旁路 raw PCM 再編 AAC-LC 進同一顆 Muxer，存到 `Movies/OmniADB/`；
-  靜止畫面補幀、開錄先逼 IDR、旋轉自動換檔（見下面「錄影」）
+  靜止畫面補幀、開錄先逼 IDR、旋轉自動換檔、csd 起始碼補齊（見下面「錄影」）
 - `MirrorActivity` —— 等比例 SurfaceView、多點觸控、自動收起的工具列（會讓開狀態列與挖孔）、
   剪貼簿同步的掛接與除錯用預置、**本機輸入法直通**（隱形接收器 + 自維護緩衝 + 兩條送出通道）、
   實體鍵盤直通、**關閉／開啟對方實體螢幕**（`TYPE_SET_DISPLAY_POWER`：面板不亮、串流照常，
@@ -1134,6 +1140,24 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 `MediaMuxer` 收 annex-B 是合法的 —— 起始碼（`00 00 00 01`）它自己會轉成 MP4 要的
 長度前綴。track 的 csd-0 / csd-1 從 config 包裡的 SPS / PPS 拆（`H264.splitCsd`），
 所以不需要另外找參數集。
+
+**但 csd 有兩個坑，而且都不會報錯。** 第一版就是這樣交出「只有聲音、畫面全是花塊」的檔：
+
+| 寫法 | 結果 |
+|---|---|
+| csd-0 = `00 00 00 01`+SPS、csd-1 = `00 00 00 01`+PPS | ✅ avcC 正常 |
+| csd-0 = `00 00 00 01`+SPS、csd-1 = **`00 00 01`**+PPS | ❌ `numPPS=0`，PPS 被默默丟掉 |
+| csd-0 = 裸 NAL（沒有起始碼） | ❌ `numSPS=0`，avcC 整個是空的 |
+| csd-0 = SPS+PPS 串在一起 | ❌ `muxer.stop()` 直接失敗 |
+
+也就是說 Muxer 的 NAL 掃描器**只認 4-byte 起始碼**，而且 csd-0 只放 SPS、csd-1 只放 PPS。
+偏偏 `splitCsd` 掃描時會先撞到 `00 00 01`，拆出來的 PPS 就只有 3-byte 起始碼 ——
+現在 `splitCsd` 一律補成 4-byte（內容一個 byte 都不動）。
+
+沒有 PPS 的 avcC，解碼器不會報錯、只會吐一整片花塊，所以這種 bug 只能靠拆 box 對照。
+`Recorder.probeMux()` 會把各種寫法各封一個檔、把產出的 avcC 印出來
+（`am start … --ez muxprobe true`）；`Recorder.probeFrame()` 從錄好的檔解一幀存成 PNG
+拉回來看（`--es frame /sdcard/Movies/OmniADB/xxx.mp4`），比「播看看」可靠得多。
 
 **音訊是另一條 session**，但它跟影像其實同源：兩邊都是對方機器上的 `app_process`，
 封包裡的 pts 都是 `System.nanoTime()/1000`（微秒、開機時間）。所以只要減掉**同一個**

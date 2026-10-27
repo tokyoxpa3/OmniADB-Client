@@ -14,7 +14,12 @@ package com.omniadb.client;
  */
 final class H264 {
 
-    /** 一個 config 包拆出來的 SPS 與 PPS，兩者都<b>帶著 Annex-B 起始碼</b>。 */
+    /**
+     * 一個 config 包拆出來的 SPS 與 PPS。
+     *
+     * <p><b>兩者都帶著 4-byte 的 Annex-B 起始碼</b>（{@code 00 00 00 01}）——
+     * 不是原封不動照抄，是<b>補齊</b>過的，原因見 {@link #splitCsd}。
+     */
     static final class Csd {
         final byte[] sps;
         final byte[] pps;
@@ -38,6 +43,13 @@ final class H264 {
      * <p>實測內容是 {@code 00 00 00 01 67 <sps> 00 00 00 01 68 <pps>}，
      * 但起始碼可能是 3 bytes（{@code 00 00 01}）也可能有前導 0，
      * 所以照 Annex-B 的規則掃，不要假設固定位移。
+     *
+     * <p><b>回傳的兩條 NAL 一律補成 4-byte 起始碼</b>（2026-10-27 實測，很重要）：
+     * {@link android.media.MediaMuxer} 在建 MP4 的 avcC 時，掃 NAL 的程式<b>只認
+     * {@code 00 00 00 01}</b>。這個方法原本對 PPS 只切到 3-byte 起始碼（掃描時先撞到
+     * {@code 00 00 01}），於是 PPS 被默默丟掉 —— 產出的 avcC {@code numPPS=0}，
+     * 錄下來的 MP4 只有聲音、畫面全是花塊，而且<b>不會有任何錯誤訊息</b>。
+     * 六種 csd 寫法的對照實驗見 {@code Recorder.probeMux}。
      */
     static Csd splitCsd(byte[] data) {
         byte[] sps = null;
@@ -78,9 +90,9 @@ final class H264 {
             while (end > nalStart && data[end - 1] == 0) end--;
 
             if (type == 7) {
-                sps = slice(data, start, end);
+                sps = nal(data, start, startLen, end);
             } else if (type == 8) {
-                pps = slice(data, start, end);
+                pps = nal(data, start, startLen, end);
             }
             i = next;
         }
@@ -194,11 +206,23 @@ final class H264 {
         }
     }
 
-    private static byte[] slice(byte[] src, int from, int to) {
+    /**
+     * 切出一條 NAL，並把起始碼<b>統一補成 4 bytes</b>。
+     *
+     * <p>原本就是 4-byte 的直接照抄；只有 3-byte（{@code 00 00 01}）的補一個 0 在前面，
+     * 內容一個 byte 都不動。為什麼非補不可見 {@link #splitCsd}。
+     */
+    private static byte[] nal(byte[] src, int from, int startLen, int to) {
         int len = to - from;
         if (len <= 0) return null;
-        byte[] out = new byte[len];
-        System.arraycopy(src, from, out, 0, len);
+        if (startLen >= 4) {
+            byte[] out = new byte[len];
+            System.arraycopy(src, from, out, 0, len);
+            return out;
+        }
+        // 3-byte 起始碼：前面留一個 0，就變成 00 00 00 01
+        byte[] out = new byte[len + 1];
+        System.arraycopy(src, from, out, 1, len);
         return out;
     }
 

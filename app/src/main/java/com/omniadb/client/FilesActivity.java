@@ -204,6 +204,16 @@ public class FilesActivity extends Activity {
     private final List<LocalDir> localStack = new ArrayList<>();
     private List<LocalItem> localItems = new ArrayList<>();
 
+    /**
+     * 已經在本機最上層按過一次返回。
+     *
+     * <p>本機最上層再按返回，開的是「換資料夾」的系統選擇器 —— 因為在根目錄按返回
+     * 最常發生的情況就是「我當初挑錯了根目錄」。但這樣就沒有辦法用返回鍵離開這一頁，
+     * 所以第二次返回才真的關掉（選完資料夾、或取消之後，{@link #rootBackUsed} 會依
+     * 情況歸零）。
+     */
+    private boolean rootBackUsed;
+
     /** 目前選取的項目。key 是「遠端的完整路徑」或「本機的 document id」。 */
     private final Set<String> selected = new LinkedHashSet<>();
 
@@ -378,6 +388,13 @@ public class FilesActivity extends Activity {
         }
         if (side == SIDE_REMOTE && !REMOTE_ROOT.equals(remotePath)) {
             goUp();
+            return;
+        }
+        if (side == SIDE_LOCAL && !rootBackUsed) {
+            // 已經在本機最上層：再按返回就是「我想換一個資料夾」，
+            // 直接開系統的資料夾選擇器，而不是把整頁關掉（見 rootBackUsed 的說明）
+            rootBackUsed = true;
+            pickLocalRoot();
             return;
         }
         super.onBackPressed();
@@ -705,6 +722,7 @@ public class FilesActivity extends Activity {
 
     private void selectSide(int which) {
         side = which;
+        rootBackUsed = false;
         selected.clear();
         resetFilter();
         updateTabs();
@@ -941,6 +959,7 @@ public class FilesActivity extends Activity {
     }
 
     private void truncateLocalTo(int keep) {
+        rootBackUsed = false;
         while (localStack.size() > keep) localStack.remove(localStack.size() - 1);
         selected.clear();
         resetFilter();
@@ -1463,6 +1482,7 @@ public class FilesActivity extends Activity {
     }
 
     private void enterLocal(LocalItem it) {
+        rootBackUsed = false;
         localStack.add(new LocalDir(it.docId, it.name));
         selected.clear();
         resetFilter();
@@ -1471,6 +1491,7 @@ public class FilesActivity extends Activity {
     }
 
     private void goUp() {
+        rootBackUsed = false;
         if (side == SIDE_LOCAL) {
             if (localStack.size() <= 1) return;
             localStack.remove(localStack.size() - 1);
@@ -1657,6 +1678,7 @@ public class FilesActivity extends Activity {
         localStack.clear();
         localStack.add(new LocalDir(DocumentsContract.getTreeDocumentId(uri), null));
         selected.clear();
+        rootBackUsed = false;
         updateBottomBar();
         selectSide(SIDE_LOCAL);
     }

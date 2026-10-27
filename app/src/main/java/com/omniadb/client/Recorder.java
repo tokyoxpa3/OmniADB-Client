@@ -499,9 +499,14 @@ final class Recorder implements Closeable, AudioSession.PcmTap {
     /**
      * 建立一段（一個檔）。
      *
-     * <p>csd-0/csd-1 直接取自 config 包裡的 SPS/PPS（{@link H264#splitCsd}）——
-     * 這跟 MediaCodec 餵給 MediaMuxer 的格式一模一樣（都是帶起始碼的 annex-B），
-     * 所以後面的樣本可以原樣寫，Muxer 自己會轉成 MP4 要的長度前綴形式。
+     * <p>csd-0/csd-1 取自 config 包裡的 SPS/PPS（{@link H264#splitCsd}）。兩者都<b>必須
+     * 帶 4-byte 起始碼</b>，而且分開放 —— 這是實測出來的，不是文件寫的：
+     * Muxer 的 avcC 掃描器只認 {@code 00 00 00 01}，PPS 若只有 3-byte 起始碼會被
+     * 默默丟掉（{@code numPPS=0}），PPS 串在 csd-0 裡則會讓 {@code stop()} 直接失敗。
+     * 對照實驗見 {@link #probeMux}。
+     *
+     * <p>之後的樣本可以原樣寫 annex-B，Muxer 自己會轉成 MP4 要的長度前綴形式
+     * （實測：樣本開頭是 {@code 00 00 ae 77 65 …}，長度正確）。
      */
     private Segment openSegment(Pkt config) throws IOException {
         H264.Csd csd = H264.splitCsd(config.data);
@@ -513,6 +518,7 @@ final class Recorder implements Closeable, AudioSession.PcmTap {
         MediaFormat fmt = MediaFormat.createVideoFormat("video/avc", config.width, config.height);
         fmt.setByteBuffer("csd-0", ByteBuffer.wrap(csd.sps));
         fmt.setByteBuffer("csd-1", ByteBuffer.wrap(csd.pps));
+        DiagLog.i(TAG, "錄影：csd sps=" + hex(csd.sps) + " pps=" + hex(csd.pps));
 
         Segment seg = new Segment();
         seg.width = config.width;
@@ -692,6 +698,183 @@ final class Recorder implements Closeable, AudioSession.PcmTap {
         }
         if (all == null) all = where;
         if (callback != null) callback.onStopped(all, message);
+    }
+
+    // ------------------------------------------------------------ 診斷
+
+    /**
+     * 一次性診斷：{@link MediaMuxer} 到底怎麼從 csd-0 / csd-1 組出 avcC。
+     *
+     * <p><b>為什麼需要這個</b>（2026-10-27）：實錄出來的 MP4 只有聲音、畫面花掉，
+     * 拆 box 發現 avcC 裡 {@code numPPS=0} —— PPS 整條不見了，解碼器沒有 PPS
+     * 只能吐垃圾。可是 csd-1 明明有設。文件沒寫清楚 csd 要帶起始碼還是裸 NAL、
+     * csd-1 會不會被吃掉，所以直接讓 Muxer 自己回答：四種寫法各封一個檔，
+     * 把產出的 avcC 印出來對照。
+     *
+     * <p>用法：{@code adb shell am start -n com.omniadb.client/.MainActivity -e muxprobe 1}
+     * 然後看 logcat 的 {@code OmniADB-Client}。
+     */
+    static void probeMux(Context ctx) {
+        // 假的但結構合法的 NAL：0x67 = SPS、0x68 = PPS，後面用有辨識度的位元組
+        byte[] sps = {(byte) 0x67, 0x64, 0x00, 0x20, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
+        byte[] pps = {(byte) 0x68, (byte) 0xCE, 0x3C, (byte) 0x80, 0x77, 0x66, 0x55};
+        byte[] sc = {0x00, 0x00, 0x00, 0x01};
+        byte[] sc3 = {0x00, 0x00, 0x01};
+
+        runProbe(ctx, "A_sps_sc4+pps_sc4", cat(sc, sps), cat(sc, pps));
+        runProbe(ctx, "B_sps_bare+pps_bare", sps, pps);
+        runProbe(ctx, "C_concat_in_csd0", cat(sc, sps, sc, pps), null);
+        runProbe(ctx, "D_sps_sc4+pps_bare", cat(sc, sps), pps);
+        // E/F：真實資料的形狀。H264.splitCsd 拆出來的 SPS 是 4-byte 起始碼，
+        // 但 PPS 因為「先找到 00 00 01」只拿到 3-byte 起始碼 —— 如果 Muxer 的
+        // 掃描器只認 4-byte，PPS 就會整條被忽略（avcC 裡 numPPS=0）。
+        runProbe(ctx, "E_sps_sc4+pps_sc3", cat(sc, sps), cat(sc3, pps));
+        runProbe(ctx, "F_sps_sc3+pps_sc3", cat(sc3, sps), cat(sc3, pps));
+    }
+
+    /**
+     * 診斷：從錄好的 MP4 解一幀出來存成 PNG，用來肉眼確認「畫面到底對不對」。
+     *
+     * <p>為什麼不直接播：實機上被別的 App 的浮動視窗擋住，而且「有聲音、畫面花掉」
+     * 這種事只有看到圖才算數。這裡走 {@link android.media.MediaMetadataRetriever}，
+     * 解不出來會直接拋例外（＝檔案真的壞了），解得出來就把那一幀存到外部目錄拉回來看。
+     */
+    static void probeFrame(Context ctx, String path) {
+        android.media.MediaMetadataRetriever r = new android.media.MediaMetadataRetriever();
+        try {
+            r.setDataSource(path);
+            android.graphics.Bitmap b = r.getFrameAtTime(2_000_000L,
+                    android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+            if (b == null) {
+                DiagLog.w(TAG, "frame：解不出畫面（b=null）");
+                return;
+            }
+            File dir = ctx.getExternalFilesDir(null);
+            File out = new File(dir, "frame.png");
+            try (java.io.FileOutputStream o = new java.io.FileOutputStream(out)) {
+                b.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, o);
+            }
+            DiagLog.i(TAG, "frame " + b.getWidth() + "x" + b.getHeight() + " → " + out);
+        } catch (Exception e) {
+            DiagLog.e(TAG, "frame 失敗", e);
+        } finally {
+            try {
+                r.release();
+            } catch (Exception ignored) {
+                // 診斷用
+            }
+        }
+    }
+
+    private static void runProbe(Context ctx, String name, byte[] csd0, byte[] csd1) {
+        File f = new File(ctx.getCacheDir(), "probe_" + name + ".mp4");
+        MediaMuxer muxer = null;
+        try {
+            MediaFormat fmt = MediaFormat.createVideoFormat("video/avc", 640, 480);
+            fmt.setByteBuffer("csd-0", ByteBuffer.wrap(csd0));
+            if (csd1 != null) fmt.setByteBuffer("csd-1", ByteBuffer.wrap(csd1));
+
+            muxer = new MediaMuxer(f.getAbsolutePath(),
+                    MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            int track = muxer.addTrack(fmt);
+            muxer.start();
+
+            byte[] sample = {0x00, 0x00, 0x00, 0x05, 0x65, 0x01, 0x02, 0x03, 0x04};
+            MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+            info.set(0, sample.length, 0, MediaCodec.BUFFER_FLAG_KEY_FRAME);
+            muxer.writeSampleData(track, ByteBuffer.wrap(sample), info);
+            muxer.stop();
+            muxer.release();
+            muxer = null;
+
+            DiagLog.i(TAG, "probe " + name + " → " + describeAvcC(f));
+        } catch (Exception e) {
+            DiagLog.e(TAG, "probe " + name + " 失敗", e);
+        } finally {
+            if (muxer != null) {
+                try {
+                    muxer.release();
+                } catch (Exception ignored) {
+                    // 診斷用，收不掉就算了
+                }
+            }
+            //noinspection ResultOfMethodCallIgnored
+            f.delete();
+        }
+    }
+
+    /** 從 MP4 裡把 avcC 的內容挖出來，順便照規格拆成人看得懂的樣子。 */
+    private static String describeAvcC(File f) throws IOException {
+        byte[] all = new byte[(int) f.length()];
+        try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
+            int off = 0;
+            while (off < all.length) {
+                int n = in.read(all, off, all.length - off);
+                if (n < 0) break;
+                off += n;
+            }
+        }
+        int at = -1;
+        for (int i = 0; i + 4 <= all.length; i++) {
+            if (all[i] == 'a' && all[i + 1] == 'v' && all[i + 2] == 'c'
+                    && all[i + 3] == 'C') {
+                at = i;
+                break;
+            }
+        }
+        if (at < 4) return "找不到 avcC";
+        int size = ((all[at - 4] & 0xFF) << 24) | ((all[at - 3] & 0xFF) << 16)
+                | ((all[at - 2] & 0xFF) << 8) | (all[at - 1] & 0xFF);
+        int bodyAt = at + 4;
+        int bodyLen = size - 8;
+        if (bodyLen <= 0 || bodyAt + bodyLen > all.length) return "avcC 長度不對 size=" + size;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("avcC[").append(bodyLen).append("] ");
+        for (int i = 0; i < bodyLen; i++) {
+            sb.append(String.format(Locale.US, "%02x", all[bodyAt + i]));
+        }
+        if (bodyLen >= 6) {
+            int numSps = all[bodyAt + 5] & 0x1F;
+            sb.append(" | numSPS=").append(numSps);
+            int q = 6;
+            for (int k = 0; k < numSps && q + 2 <= bodyLen; k++) {
+                int len = ((all[bodyAt + q] & 0xFF) << 8) | (all[bodyAt + q + 1] & 0xFF);
+                sb.append(" sps").append(k).append("=").append(len);
+                q += 2 + len;
+            }
+            if (q < bodyLen) {
+                int numPps = all[bodyAt + q] & 0xFF;
+                sb.append(" numPPS=").append(numPps);
+                q++;
+                for (int k = 0; k < numPps && q + 2 <= bodyLen; k++) {
+                    int len = ((all[bodyAt + q] & 0xFF) << 8) | (all[bodyAt + q + 1] & 0xFF);
+                    sb.append(" pps").append(k).append("=").append(len);
+                    q += 2 + len;
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    private static byte[] cat(byte[]... parts) {
+        int n = 0;
+        for (byte[] p : parts) n += p.length;
+        byte[] out = new byte[n];
+        int off = 0;
+        for (byte[] p : parts) {
+            System.arraycopy(p, 0, out, off, p.length);
+            off += p.length;
+        }
+        return out;
+    }
+
+    private static String hex(byte[] b) {
+        if (b == null) return "null";
+        StringBuilder sb = new StringBuilder(b.length * 2 + 4);
+        sb.append('[').append(b.length).append("] ");
+        for (byte x : b) sb.append(String.format(Locale.US, "%02x", x));
+        return sb.toString();
     }
 
     // ------------------------------------------------------------ 小工具

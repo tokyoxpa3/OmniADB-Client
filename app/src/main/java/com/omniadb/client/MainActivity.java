@@ -176,6 +176,18 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         DiagLog.init(this);
         DiagLog.i(TAG, "語系：" + getResources().getConfiguration().getLocales().toLanguageTags());
+        if (getIntent() != null && getIntent().getBooleanExtra("muxprobe", false)) {
+            // 診斷入口：MediaMuxer 怎麼組 avcC（見 Recorder.probeMux）
+            Recorder.probeMux(this);
+            finish();
+            return;
+        }
+        if (getIntent() != null && getIntent().getStringExtra("frame") != null) {
+            // 診斷入口：從某個 MP4 解一幀出來（見 Recorder.probeFrame）
+            Recorder.probeFrame(this, getIntent().getStringExtra("frame"));
+            finish();
+            return;
+        }
         store = new DeviceStore(this);
         setContentView(buildUi());
         loadStored();
