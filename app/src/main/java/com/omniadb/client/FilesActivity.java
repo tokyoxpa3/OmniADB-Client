@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.util.Size;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -204,16 +205,6 @@ public class FilesActivity extends Activity {
     private final List<LocalDir> localStack = new ArrayList<>();
     private List<LocalItem> localItems = new ArrayList<>();
 
-    /**
-     * 已經在本機最上層按過一次返回。
-     *
-     * <p>本機最上層再按返回，開的是「換資料夾」的系統選擇器 —— 因為在根目錄按返回
-     * 最常發生的情況就是「我當初挑錯了根目錄」。但這樣就沒有辦法用返回鍵離開這一頁，
-     * 所以第二次返回才真的關掉（選完資料夾、或取消之後，{@link #rootBackUsed} 會依
-     * 情況歸零）。
-     */
-    private boolean rootBackUsed;
-
     /** 目前選取的項目。key 是「遠端的完整路徑」或「本機的 document id」。 */
     private final Set<String> selected = new LinkedHashSet<>();
 
@@ -388,13 +379,6 @@ public class FilesActivity extends Activity {
         }
         if (side == SIDE_REMOTE && !REMOTE_ROOT.equals(remotePath)) {
             goUp();
-            return;
-        }
-        if (side == SIDE_LOCAL && !rootBackUsed) {
-            // 已經在本機最上層：再按返回就是「我想換一個資料夾」，
-            // 直接開系統的資料夾選擇器，而不是把整頁關掉（見 rootBackUsed 的說明）
-            rootBackUsed = true;
-            pickLocalRoot();
             return;
         }
         super.onBackPressed();
@@ -722,7 +706,6 @@ public class FilesActivity extends Activity {
 
     private void selectSide(int which) {
         side = which;
-        rootBackUsed = false;
         selected.clear();
         resetFilter();
         updateTabs();
@@ -896,8 +879,9 @@ public class FilesActivity extends Activity {
             }
             String rootName = localRootName != null
                     ? localRootName : getString(R.string.files_local_root);
-            final int rootKeep = 1;
-            addTrail(rootName, localStack.size() <= 1, () -> truncateLocalTo(rootKeep));
+            // 根目錄那一段做成膠囊 + ▾（見 addRootChip）。一進來就看得出
+            // 「這裡可以換一個資料夾」，不必去翻 ⋮。
+            addRootChip(rootName);
             for (int i = 1; i < localStack.size(); i++) {
                 String name = localStack.get(i).name;
                 if (name == null) continue;
@@ -925,6 +909,46 @@ public class FilesActivity extends Activity {
 
         // 路徑長的時後要把「目前在最後一段」露出來，不然永遠只看到 /sdcard
         trailScroll.post(() -> trailScroll.fullScroll(View.FOCUS_RIGHT));
+    }
+
+    /**
+     * 本機根目錄那一段：帶底色的膠囊，尾巴一個 {@code ▾}。
+     *
+     * <p><b>為什麼要有這一顆</b>：本機這一側的根目錄是使用者自己挑的（SAF 樹），
+     * 所以「換一個資料夾」是這裡獨有的動作。原本它只藏在 {@code ⋮ → 選擇本機資料夾}
+     * 裡面，使用者進來只看到一個資料夾名稱，根本不會想到那是一個可以換的選擇。
+     *
+     * <p><b>為什麼不做成「返回鍵再按一次」</b>：試過，很怪 —— 返回鍵在每一頁的意思
+     * 都是「離開」，在這裡突然變成「開一個選擇器」，第二次才離開，沒有人猜得到。
+     * 換資料夾是<b>正向的動作</b>，就該有一顆看得見的按鈕。
+     *
+     * <p>這顆<b>永遠可點</b>，包括現在就在根目錄的時候 —— 它代表「換一個根」，
+     * 不是「回上一層」（後者是左邊那顆 {@code ↑}）。
+     */
+    private void addRootChip(String label) {
+        TextView t = new TextView(this);
+        t.setText(label + " ▾");
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setTextColor(0xFF1A73E8);
+        t.setSingleLine(true);
+        t.setPadding(dp(11), dp(6), dp(11), dp(6));
+        t.setEllipsize(TextUtils.TruncateAt.END);
+
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(0xFFE8F0FE);
+        bg.setCornerRadius(dp(14));
+        t.setBackground(bg);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.setMargins(dp(2), 0, dp(4), 0);
+        t.setLayoutParams(lp);
+
+        t.setOnClickListener(v -> {
+            if (!transferring) pickLocalRoot();
+        });
+        trailBox.addView(t);
     }
 
     private void addTrail(String label, boolean last, Runnable action) {
@@ -959,7 +983,6 @@ public class FilesActivity extends Activity {
     }
 
     private void truncateLocalTo(int keep) {
-        rootBackUsed = false;
         while (localStack.size() > keep) localStack.remove(localStack.size() - 1);
         selected.clear();
         resetFilter();
@@ -1482,7 +1505,6 @@ public class FilesActivity extends Activity {
     }
 
     private void enterLocal(LocalItem it) {
-        rootBackUsed = false;
         localStack.add(new LocalDir(it.docId, it.name));
         selected.clear();
         resetFilter();
@@ -1491,7 +1513,6 @@ public class FilesActivity extends Activity {
     }
 
     private void goUp() {
-        rootBackUsed = false;
         if (side == SIDE_LOCAL) {
             if (localStack.size() <= 1) return;
             localStack.remove(localStack.size() - 1);
@@ -1678,7 +1699,6 @@ public class FilesActivity extends Activity {
         localStack.clear();
         localStack.add(new LocalDir(DocumentsContract.getTreeDocumentId(uri), null));
         selected.clear();
-        rootBackUsed = false;
         updateBottomBar();
         selectSide(SIDE_LOCAL);
     }
