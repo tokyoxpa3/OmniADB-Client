@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- 連到遠端手機的 adbd -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- mDNS 掃描：需要 multicast lock 才收得到 _adb-tls-*.local 的廣播 -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
+    <application
+        android:name=".OmniApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.DeviceDefault.Light"
+        tools:ignore="DataExtractionRules,GoogleAppIndexingWarning">
+
+        <!--
+            刻意用 NoActionBar：MainActivity 自己在內容區畫了「大標題 + 一句說明」，
+            再留系統 ActionBar 就是同一個名字出現兩次（而且白白吃掉 ~56dp，
+            那條高度對裝置清單很有用）。標題只留內容區那一組。
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            鏡像畫面。configChanges 是必要的：轉動本機時若 Activity 被重建，
+            鏡像連線會跟著斷（Surface 被銷毀 → 解碼器沒地方畫），
+            使用者只會看到「轉一下螢幕就斷線」。
+
+            supportsPictureInPicture：按 Home 時縮成小窗繼續看（見 onUserLeaveHint）。
+            沒有它，「邊看邊用其他 App」就得整條連線重來。
+
+            刻意**不**宣告 screenOrientation：畫面方向由 MirrorActivity 用
+            setRequestedOrientation() 自己控制（要等對方轉好才轉，見那裡的說明）。
+        -->
+        <activity
+            android:name=".MirrorActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
+            android:supportsPictureInPicture="true"
+            android:launchMode="singleTask" />
+
+        <!--
+            檔案總管。exported=false：只有本 App 進得來。
+
+            主題一樣是 NoActionBar —— 它自己畫了標題列（左邊是返回箭頭），
+            用系統那條只會多佔高度，而且返回鍵的行為跟我們要的不一樣
+            （我們是按「上一層」，不是關掉畫面）。
+        -->
+        <activity
+            android:name=".FilesActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!--
+            匯出日誌用。
+
+            分享意圖只帶得動 content:// —— 直接塞 file:// 會丟
+            FileUriExposedException（Android 7 之後的硬性規定）。這個 provider
+            把 cacheDir／filesDir 底下指定的檔案暫時借給收件 App 讀，
+            權限只跟著那一次 Intent（FLAG_GRANT_READ_URI_PERMISSION），不是永久開放。
+
+            authorities 一定要跟程式裡的字串一致（MainActivity.LOG_AUTHORITY），
+            改一個沒改另一個會在按下「匯出」的當下才爆。
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.omniadb.client.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

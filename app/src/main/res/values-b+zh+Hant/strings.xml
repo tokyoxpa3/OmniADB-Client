@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OmniADB Client</string>
+    <string name="app_subtitle">用手機控制另一支手機 —— 掃描、配對、安裝、連線</string>
+
+    <string name="btn_scan">掃描</string>
+    <string name="btn_add">手動新增</string>
+    <string name="btn_pair">配對</string>
+
+    <string name="status_idle">就緒</string>
+    <string name="status_scanning">正在掃描開啟無線偵錯的裝置…</string>
+    <string name="status_scan_done">掃描結束 —— 清單共 %1$d 台</string>
+    <string name="status_pairing">配對中…</string>
+    <string name="status_pairing_port_found">在 %1$s:%2$d 找到配對埠 —— 按「配對」會自動填入</string>
+
+    <string name="state_probing">檢查中…</string>
+    <string name="state_unknown">未知</string>
+    <string name="state_online">已連上</string>
+    <string name="state_offline">離線</string>
+    <string name="state_need_auth">待授權</string>
+    <string name="state_waiting_auth">等待對方允許…</string>
+    <string name="auth_watching">對方手機上正掛著授權框 —— 去按「允許」，這張卡片會自己變成已連上</string>
+
+    <string name="auth_row_hint">對方還沒信任這支 App —— 按下去後到對方手機按「允許」（沒彈框就改用「配對」）</string>
+    <string name="btn_authorize">請求授權</string>
+    <string name="auth_title">請求授權</string>
+    <string name="auth_waiting">請在對方手機上按「允許」… 剩 %1$d 秒</string>
+    <string name="auth_ok">已授權 %1$s</string>
+    <string name="auth_failed">授權失敗：%1$s（可改用「配對」）</string>
+    <string name="auth_timeout">逾時</string>
+
+    <string name="meta_line">%1$s · %2$s · %3$s</string>
+    <string name="empty_hint">目前沒有裝置。\n\n按「掃描」找同網段開著無線偵錯的手機；已知位址的話也可以用「手動新增」。</string>
+
+    <string name="btn_detail">詳情</string>
+    <string name="btn_install">安裝</string>
+    <string name="btn_mirror">鏡像</string>
+    <string name="btn_files">檔案</string>
+    <string name="btn_remove">移除</string>
+
+    <!-- 檔案總管 -->
+    <string name="files_title">檔案 · %1$s</string>
+    <string name="files_tab_local">本機</string>
+    <string name="files_tab_remote">對方</string>
+    <string name="files_refresh">重新整理</string>
+    <string name="files_loading">讀取中…</string>
+    <string name="files_count">%1$d 個項目</string>
+    <string name="files_error">讀取失敗：%1$s</string>
+    <string name="files_local_denied">讀不到這個資料夾（權限可能已被撤銷）</string>
+    <string name="files_empty">這個資料夾是空的</string>
+    <string name="files_kind_dir">資料夾</string>
+    <string name="files_pick_root">選擇資料夾</string>
+    <string name="files_pick_hint">選一個資料夾當作「本機」這一側的根目錄。\n只會存取你選的那一個。</string>
+    <string name="files_local_root">本機</string>
+    <string name="files_show_hidden">顯示隱藏</string>
+    <string name="files_hide_hidden">隱藏隱藏檔</string>
+    <string name="files_no_local_root">尚未選擇本機資料夾</string>
+    <string name="files_selected">已選 %1$d 項</string>
+    <string name="files_send_to_remote">傳到對方</string>
+    <string name="files_send_to_local">傳到本機</string>
+    <string name="files_transferring">正在傳輸</string>
+    <string name="files_preparing">準備中…</string>
+    <string name="files_elapsed">%1$s · 已 %2$d 秒</string>
+    <string name="files_progress">第 %1$d/%2$d 個 · %3$s</string>
+    <string name="files_cancel">取消</string>
+    <string name="files_transfer_done">完成，共 %1$d 個檔案</string>
+    <string name="files_transfer_failed">傳輸失敗：%1$s</string>
+    <string name="files_no_picker">這台裝置沒有檔案選擇器</string>
+
+    <!-- 目錄操作 -->
+    <string name="files_menu_new_folder">新增資料夾</string>
+    <string name="files_menu_jump">跳到路徑…</string>
+    <string name="files_menu_sort">排序…</string>
+    <string name="files_menu_pick_root">選本機資料夾</string>
+    <string name="files_sort_name">名稱（A→Z）</string>
+    <string name="files_sort_name_desc">名稱（Z→A）</string>
+    <string name="files_sort_size">大小（大到小）</string>
+    <string name="files_sort_time">修改時間（新到舊）</string>
+    <string name="files_name_hint">名稱</string>
+    <string name="files_rename_title">改名</string>
+    <string name="files_name_invalid">名稱不能空白，也不能有 /</string>
+    <string name="files_created">已建立 %1$s</string>
+    <string name="files_renamed">已改名為 %1$s</string>
+    <string name="files_jump_title">跳到路徑</string>
+    <string name="files_jump_invalid">路徑要從 / 開始</string>
+    <!-- 選取操作 -->
+    <string name="files_select_all">全選</string>
+    <string name="files_clear_selection">取消選取</string>
+    <string name="files_info">詳細資訊</string>
+    <string name="files_info_name">名稱</string>
+    <string name="files_info_path">路徑</string>
+    <string name="files_info_size">大小</string>
+    <string name="files_info_time">修改時間</string>
+    <string name="files_info_mode">權限</string>
+    <string name="files_info_kind">類型</string>
+    <string name="files_kind_file">檔案</string>
+    <string name="files_delete_title">刪除</string>
+    <string name="files_delete_confirm">確定刪除這 %1$d 項？遠端刪除不會進垃圾桶，刪掉就沒了。</string>
+    <string name="files_delete_confirm_local">確定刪除本機這 %1$d 項？</string>
+    <string name="files_delete_ok">刪除</string>
+    <string name="files_deleted">已刪除 %1$d 項</string>
+    <string name="files_op_failed">操作失敗：%1$s</string>
+    <string name="files_working">處理中…</string>
+    <string name="files_need_local_root">先選一個本機資料夾</string>
+    <string name="files_dir_progress">%1$s · %2$d 個檔案</string>
+
+    <!-- 易用性 -->
+    <string name="files_opening">開啟中…</string>
+    <string name="files_open_confirm_title">要先下載</string>
+    <string name="files_open_confirm">%1$s（%2$s）\n\n要先下載到暫存資料夾才能開啟。</string>
+    <string name="files_open_failed">這台手機上沒有 App 能開這種檔</string>
+    <string name="files_actions">動作</string>
+    <string name="files_menu_download_open">下載並開啟</string>
+    <string name="files_dest">→ %1$s</string>
+    <string name="files_search_hint">搜尋這個資料夾</string>
+    <string name="files_filtered">顯示 %1$d / %2$d 項</string>
+    <string name="files_menu_places">常用位置</string>
+    <string name="files_cancel_search">關閉搜尋</string>
+
+    <!-- 剪貼簿 -->
+    <string name="files_copy">複製</string>
+    <string name="files_cut">剪下</string>
+    <string name="files_paste">貼上</string>
+    <string name="files_clip_copy">剪貼簿：%1$d 項（複製）</string>
+    <string name="files_clip_cut">剪貼簿：%1$d 項（剪下）</string>
+    <string name="files_copied">已複製 %1$d 項</string>
+    <string name="files_cut_done">已剪下 %1$d 項</string>
+    <string name="files_clear_clip">清空剪貼簿</string>
+    <string name="files_checking">正在檢查目的地…</string>
+    <string name="files_copying">複製中</string>
+    <string name="files_moving">搬移中</string>
+    <string name="files_conflict_title">目標已有同名項目</string>
+    <string name="files_conflict_msg">%1$d 項在 %2$s 裡已經有同名：\n\n%3$s\n\n要覆蓋，還是兩份都留？</string>
+    <string name="files_conflict_overwrite">覆蓋</string>
+    <string name="files_conflict_keep">兩份都留</string>
+    <string name="files_same_dir">目的地就是它現在所在的資料夾</string>
+    <string name="files_into_self">資料夾不能搬進它自己裡面</string>
+
+    <string name="install_chooser_title">要安裝什麼到 %1$s？</string>
+    <string name="install_choice_host">OmniADB Host（讓這台能被控制）</string>
+    <string name="install_choice_apk">從本機選 APK…</string>
+    <string name="status_copying_apk">正在讀取 %1$s…</string>
+    <string name="msg_apk_read_failed">讀不到 APK：%1$s</string>
+    <string name="msg_apk_empty">這個檔案是空的，可能沒讀到內容</string>
+    <string name="msg_apk_install_title">安裝 %1$s</string>
+    <string name="msg_apk_pushing">推送到對方手機…（%1$d MB）\n送完之後對方才會開始安裝，這一步可能要 10～60 秒。</string>
+    <string name="msg_apk_install_done">已安裝到 %1$s</string>
+    <string name="msg_apk_install_failed">安裝失敗：%1$s</string>
+    <string name="msg_install_user_restricted">對方手機跳出了「USB 安裝提醒」，那是 10 秒倒數的確認框，沒人按「繼續安裝」就會自動拒絕。\n本程式會幫你代按；若還是失敗，請在對方手機上直接按「繼續安裝」。</string>
+    <string name="msg_no_file_picker">這台手機沒有可用的檔案選擇器</string>
+
+    <string name="lbl_ip">位址</string>
+    <string name="lbl_model">型號</string>
+    <string name="lbl_android">Android</string>
+    <string name="lbl_screen">螢幕</string>
+    <string name="lbl_battery">電量</string>
+    <string name="lbl_storage">可用儲存</string>
+    <string name="lbl_foreground">前景 App</string>
+
+    <string name="dlg_add_title">新增裝置</string>
+    <string name="hint_host">IP 位址，例如 192.168.1.192</string>
+    <string name="hint_port">埠號（預設 5555）</string>
+
+    <string name="dlg_pair_title">用配對碼配對</string>
+    <string name="hint_pair_port">配對埠（對方對話框上顯示的那個）</string>
+    <string name="hint_code">6 位數配對碼</string>
+    <string name="pair_hint">在對方手機上：開發者選項 → 無線偵錯 → 使用配對碼配對裝置。配對期間那個對話框要保持開著，關掉配對就會失敗。</string>
+
+    <string name="ok">確定</string>
+    <string name="cancel">取消</string>
+    <string name="close">關閉</string>
+
+    <string name="msg_pair_need_input">位址、配對埠、配對碼都必須填</string>
+    <string name="msg_pair_ok">配對成功</string>
+    <string name="msg_pair_fail">配對失敗 —— 檢查配對碼，並確認對方對話框沒關掉</string>
+
+    <string name="msg_install_title">正在安裝 OmniADB Host 到 %1$s</string>
+    <string name="msg_installing">開始…</string>
+    <string name="msg_install_done">安裝完成。Host 之後會把 ADB 固定在 5555，重開機也會自己爬回來。</string>
+    <string name="msg_install_failed">安裝失敗 —— 看上面哪一步沒過</string>
+
+    <string name="msg_remove_title">移除裝置</string>
+    <string name="msg_remove_msg">要忘記 %1$s 嗎？對方手機上的配對金鑰不受影響。</string>
+    <string name="msg_need_connect">裝置目前連不上</string>
+    <string name="msg_reading_info">正在讀取裝置資訊 —— 對方剛授權完，還要幾秒</string>
+    <string name="msg_probe_timeout">連線逾時 —— 對方可能正在等授權，或這個埠不能用</string>
+    <string name="msg_tried_5555">5555 也試過了：%1$s</string>
+
+    <!-- 鏡像 -->
+    <string name="mirror_title">正在鏡像 %1$s</string>
+    <string name="mirror_connecting">正在啟動影像串流…</string>
+    <string name="mirror_failed">無法開始鏡像：%1$s</string>
+    <string name="mirror_ended">連線已結束</string>
+    <string name="mirror_btn_back">返回</string>
+    <string name="mirror_btn_home">主頁</string>
+    <string name="mirror_btn_recents">多工</string>
+    <string name="mirror_btn_rotate">旋轉</string>
+    <string name="mirror_btn_sound_on">有聲</string>
+    <string name="mirror_btn_sound_off">靜音</string>
+    <string name="mirror_btn_sound_off_all">無聲</string>
+    <string name="mirror_no_audio">對方沒有送出音訊</string>
+    <string name="mirror_audio_back">已接回聲音（畫面沒有中斷）</string>
+    <string name="mirror_host_muted">對方已靜音（本機仍聽得到）</string>
+    <string name="mirror_host_audible">對方喇叭已開</string>
+    <string name="mirror_follow_on">已跟隨本機方向</string>
+    <string name="mirror_follow_off">已停止跟隨，請用手動旋轉</string>
+    <string name="mirror_host_locked">對方 App 鎖定了方向，本機保持與它一致</string>
+    <string name="mirror_btn_vol_up">音量＋</string>
+    <string name="mirror_btn_vol_down">音量－</string>
+    <string name="mirror_btn_power">電源</string>
+    <string name="mirror_btn_close">離開</string>
+
+    <!-- 工具列「設置」選單 -->
+    <string name="mirror_btn_more">設置</string>
+    <string name="mirror_btn_keyboard">鍵盤</string>
+    <string name="menu_follow">跟隨本機方向</string>
+    <string name="msg_keyboard_hint">現在用的是本機輸入法 —— 先點一下對方的輸入框，再開始打字</string>
+    <string name="menu_paste">貼上本機剪貼簿</string>
+    <string name="msg_paste_sent">已送出 %1$d 個字</string>
+    <string name="msg_paste_failed">對方沒有貼上 —— 可以在對方長按後選「貼上」</string>
+    <string name="msg_clipboard_empty">本機剪貼簿沒有文字</string>
+    <string name="menu_quality">畫質…</string>
+    <string name="menu_stay_awake">對方螢幕保持常亮</string>
+    <string name="menu_audio">音訊…</string>
+    <string name="menu_reconnect">重新連線</string>
+    <string name="menu_screen_off">關閉對方螢幕（省電）</string>
+    <string name="menu_screen_on">開啟對方螢幕</string>
+    <string name="menu_screenshot">截圖（存到本機相簿）</string>
+
+    <string name="shot_started">正在截圖…</string>
+    <string name="shot_saved">已存到 %1$s</string>
+    <string name="shot_failed">截圖失敗：%1$s</string>
+    <string name="msg_host_screen_off">對方螢幕已關閉，鏡像照常</string>
+    <string name="msg_host_screen_on">對方螢幕已開啟</string>
+
+    <string name="msg_need_reconnect">下次連線生效</string>
+
+    <string name="dlg_quality_title">畫質</string>
+    <string-array name="quality_items">
+        <item>省流量 · 720p / 2 Mbps / 30 fps</item>
+        <item>標準 · 1280p / 6 Mbps / 60 fps</item>
+        <item>高畫質 · 1600p / 12 Mbps / 60 fps</item>
+    </string-array>
+
+    <string name="dlg_audio_title">音訊</string>
+    <string-array name="audio_items">
+        <item>兩邊都有聲 · 對方喇叭照常出聲</item>
+        <item>只有我有聲 · 對方喇叭靜音</item>
+        <item>不要聲音 · 不開音訊，對方喇叭不受影響</item>
+    </string-array>
+
+    <string name="mirror_restarting">套用設定，重新連線中…</string>
+    <string name="mirror_reconnecting">連線中斷，重連中（第 %1$d 次）…</string>
+    <string name="mirror_reconnect_failed">重連失敗，請返回後重試。</string>
+
+    <!-- 安裝進度 -->
+    <string name="progress_preparing">準備中… %1$d MB</string>
+    <!-- %% 是必要的：這串有格式參數，單獨一個 % 會被 aapt 當成格式錯誤 -->
+    <string name="progress_push">%1$d%% —— %2$d / %3$d MB</string>
+    <string name="progress_installing">已送完，對方手機正在安裝… %1$d 秒（這一步沒有進度可問）</string>
+    <string name="progress_done">完成</string>
+    <!-- 進度條停在 100% 但安裝其實失敗了：文字一定要說清楚，不然會被當成成功 -->
+    <string name="progress_failed">失敗</string>
+
+    <!-- 日誌 -->
+    <string name="btn_logs">日誌</string>
+    <string name="dlg_logs_title">執行日誌</string>
+    <string name="log_empty">目前沒有日誌。</string>
+    <string name="log_export">匯出</string>
+    <string name="log_clear">清空</string>
+    <string name="log_export_subject">OmniADB Client 日誌</string>
+    <string name="log_share_title">分享日誌</string>
+    <string name="log_exported">已匯出日誌：%1$s</string>
+    <string name="log_export_failed">匯出失敗：%1$s</string>
+    <string name="log_copied">沒有可分享的 App —— 日誌已複製到剪貼簿</string>
+    <string name="log_cleared">日誌已清空</string>
+</resources>

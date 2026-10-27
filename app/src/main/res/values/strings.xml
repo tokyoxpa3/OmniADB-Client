@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OmniADB Client</string>
+    <string name="app_subtitle">Control another phone over ADB — scan, pair, install, connect</string>
+
+    <string name="btn_scan">Scan</string>
+    <string name="btn_add">Add by IP</string>
+    <string name="btn_pair">Pair</string>
+
+    <string name="status_idle">Ready</string>
+    <string name="status_scanning">Scanning for wireless debugging devices…</string>
+    <string name="status_scan_done">Scan finished — %1$d device(s) in the list</string>
+    <string name="status_pairing">Pairing…</string>
+    <string name="status_pairing_port_found">Found pairing port on %1$s:%2$d — tap Pair to use it</string>
+
+    <string name="state_probing">Checking…</string>
+    <string name="state_unknown">Unknown</string>
+    <string name="state_online">Online</string>
+    <string name="state_offline">Offline</string>
+    <string name="state_need_auth">Needs authorization</string>
+    <string name="state_waiting_auth">Waiting for Allow…</string>
+    <string name="auth_watching">RSA prompt is showing on that phone — waiting for you to tap Allow (this card will turn green by itself)</string>
+
+    <string name="auth_row_hint">This phone does not trust this app yet — tap below, then tap Allow on that phone (no dialog? use Pairing instead)</string>
+    <string name="btn_authorize">Request authorization</string>
+    <string name="auth_title">Requesting authorization</string>
+    <string name="auth_waiting">Tap Allow on the other phone… %1$d s left</string>
+    <string name="auth_ok">Authorized %1$s</string>
+    <string name="auth_failed">Not authorized: %1$s (you can use Pair instead)</string>
+    <string name="auth_timeout">timed out</string>
+
+    <string name="meta_line">%1$s · %2$s · %3$s</string>
+    <string name="empty_hint">No devices yet.\n\nTap Scan to look for phones with wireless debugging enabled, or Add by IP if you already know the address.</string>
+
+    <string name="btn_detail">Details</string>
+    <string name="btn_install">Install</string>
+    <string name="btn_mirror">Mirror</string>
+    <string name="btn_files">Files</string>
+    <string name="btn_remove">Remove</string>
+
+    <!-- 檔案總管 -->
+    <string name="files_title">Files · %1$s</string>
+    <string name="files_tab_local">This phone</string>
+    <string name="files_tab_remote">Host</string>
+    <string name="files_refresh">Refresh</string>
+    <string name="files_loading">Loading…</string>
+    <string name="files_count">%1$d item(s)</string>
+    <string name="files_error">Failed: %1$s</string>
+    <string name="files_local_denied">Cannot read this folder (permission may have been revoked)</string>
+    <string name="files_empty">This folder is empty</string>
+    <string name="files_kind_dir">Folder</string>
+    <string name="files_pick_root">Choose a folder</string>
+    <string name="files_pick_hint">Pick one folder to be the "this phone" side.\nOnly that folder will be accessed.</string>
+    <string name="files_local_root">This phone</string>
+    <string name="files_show_hidden">Show hidden</string>
+    <string name="files_hide_hidden">Hide hidden</string>
+    <string name="files_no_local_root">No local folder chosen</string>
+    <string name="files_selected">%1$d selected</string>
+    <string name="files_send_to_remote">Send to host</string>
+    <string name="files_send_to_local">Send to this phone</string>
+    <string name="files_transferring">Transferring</string>
+    <string name="files_preparing">Preparing…</string>
+    <string name="files_elapsed">%1$s · %2$d s</string>
+    <string name="files_progress">%1$d of %2$d · %3$s</string>
+    <string name="files_cancel">Cancel</string>
+    <string name="files_transfer_done">Done — %1$d file(s)</string>
+    <string name="files_transfer_failed">Transfer failed: %1$s</string>
+    <string name="files_no_picker">This device has no document picker</string>
+
+    <!-- 目錄操作 -->
+    <string name="files_menu_new_folder">New folder</string>
+    <string name="files_menu_jump">Go to path…</string>
+    <string name="files_menu_sort">Sort…</string>
+    <string name="files_menu_pick_root">Choose a folder on this phone</string>
+    <string name="files_sort_name">Name (A→Z)</string>
+    <string name="files_sort_name_desc">Name (Z→A)</string>
+    <string name="files_sort_size">Size (largest first)</string>
+    <string name="files_sort_time">Modified (newest first)</string>
+    <string name="files_name_hint">Name</string>
+    <string name="files_rename_title">Rename</string>
+    <string name="files_name_invalid">Name cannot be empty or contain /</string>
+    <string name="files_created">Created %1$s</string>
+    <string name="files_renamed">Renamed to %1$s</string>
+    <string name="files_jump_title">Go to path</string>
+    <string name="files_jump_invalid">Path must start with /</string>
+    <!-- 選取操作 -->
+    <string name="files_select_all">Select all</string>
+    <string name="files_clear_selection">Clear selection</string>
+    <string name="files_info">Details</string>
+    <string name="files_info_name">Name</string>
+    <string name="files_info_path">Path</string>
+    <string name="files_info_size">Size</string>
+    <string name="files_info_time">Modified</string>
+    <string name="files_info_mode">Mode</string>
+    <string name="files_info_kind">Type</string>
+    <string name="files_kind_file">File</string>
+    <string name="files_delete_title">Delete</string>
+    <string name="files_delete_confirm">Delete %1$d item(s)? Files on the host go straight away — there is no trash.</string>
+    <string name="files_delete_confirm_local">Delete %1$d item(s) from this phone?</string>
+    <string name="files_delete_ok">Delete</string>
+    <string name="files_deleted">Deleted %1$d item(s)</string>
+    <string name="files_op_failed">Failed: %1$s</string>
+    <string name="files_working">Working…</string>
+    <string name="files_need_local_root">Choose a folder on this phone first</string>
+    <string name="files_dir_progress">%1$s · %2$d file(s)</string>
+
+    <!-- 易用性 -->
+    <string name="files_opening">Opening…</string>
+    <string name="files_open_confirm_title">Download first?</string>
+    <string name="files_open_confirm">%1$s (%2$s)\n\nIt has to be downloaded to a temporary folder before it can be opened.</string>
+    <string name="files_open_failed">No app on this phone can open this file</string>
+    <string name="files_actions">Actions</string>
+    <string name="files_menu_download_open">Download and open</string>
+    <string name="files_dest">→ %1$s</string>
+    <string name="files_search_hint">Search this folder</string>
+    <string name="files_filtered">%1$d of %2$d</string>
+    <string name="files_menu_places">Common places</string>
+    <string name="files_cancel_search">Close search</string>
+
+    <!-- 剪貼簿 -->
+    <string name="files_copy">Copy</string>
+    <string name="files_cut">Cut</string>
+    <string name="files_paste">Paste</string>
+    <string name="files_clip_copy">%1$d item(s) copied</string>
+    <string name="files_clip_cut">%1$d item(s) cut</string>
+    <string name="files_copied">Copied %1$d item(s)</string>
+    <string name="files_cut_done">Cut %1$d item(s)</string>
+    <string name="files_clear_clip">Clear clipboard</string>
+    <string name="files_checking">Checking the destination…</string>
+    <string name="files_copying">Copying</string>
+    <string name="files_moving">Moving</string>
+    <string name="files_conflict_title">Same name already there</string>
+    <string name="files_conflict_msg">%1$d item(s) in %2$s already have that name:\n\n%3$s\n\nOverwrite, or keep both?</string>
+    <string name="files_conflict_overwrite">Overwrite</string>
+    <string name="files_conflict_keep">Keep both</string>
+    <string name="files_same_dir">The destination is the folder it is already in</string>
+    <string name="files_into_self">A folder cannot be moved inside itself</string>
+
+    <string name="install_chooser_title">What should be installed on %1$s?</string>
+    <string name="install_choice_host">OmniADB Host (make it controllable)</string>
+    <string name="install_choice_apk">Pick an APK from this phone…</string>
+    <string name="status_copying_apk">Reading %1$s…</string>
+    <string name="msg_apk_read_failed">Cannot read the APK: %1$s</string>
+    <string name="msg_apk_empty">The file is empty — nothing was read</string>
+    <string name="msg_apk_install_title">Installing %1$s</string>
+    <string name="msg_apk_pushing">Pushing to the other phone… (%1$d MB)\nThe other phone runs the install afterwards — that can take 10–60 s.</string>
+    <string name="msg_apk_install_done">Installed on %1$s</string>
+    <string name="msg_apk_install_failed">Install failed: %1$s</string>
+    <string name="msg_install_user_restricted">The other phone showed a “USB install” prompt with a 10-second countdown, and it auto-declined because nobody tapped it.\nThis app taps “Continue install” for you; if it still fails, tap it on that phone.</string>
+    <string name="msg_no_file_picker">No file picker available on this phone</string>
+
+    <string name="lbl_ip">Address</string>
+    <string name="lbl_model">Model</string>
+    <string name="lbl_android">Android</string>
+    <string name="lbl_screen">Screen</string>
+    <string name="lbl_battery">Battery</string>
+    <string name="lbl_storage">Storage free</string>
+    <string name="lbl_foreground">Foreground app</string>
+
+    <string name="dlg_add_title">Add device</string>
+    <string name="hint_host">IP address, e.g. 192.168.1.192</string>
+    <string name="hint_port">Port (default 5555)</string>
+
+    <string name="dlg_pair_title">Pair with pairing code</string>
+    <string name="hint_pair_port">Pairing port (from the dialog on the other phone)</string>
+    <string name="hint_code">6-digit pairing code</string>
+    <string name="pair_hint">On the other phone: Developer options → Wireless debugging → Pair device with pairing code. Keep that dialog open while pairing.</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
+
+    <string name="msg_pair_need_input">Address, pairing port and code are all required</string>
+    <string name="msg_pair_ok">Paired</string>
+    <string name="msg_pair_fail">Pairing failed — check the code and keep the dialog open on the other phone</string>
+
+    <string name="msg_install_title">Installing OmniADB Host on %1$s</string>
+    <string name="msg_installing">Starting…</string>
+    <string name="msg_install_done">Install complete. The Host app will now keep ADB on port 5555 across reboots.</string>
+    <string name="msg_install_failed">Install failed — see the steps above</string>
+
+    <string name="msg_remove_title">Remove device</string>
+    <string name="msg_remove_msg">Forget %1$s? The pairing key on the other phone is not affected.</string>
+    <string name="msg_probe_timeout">Timed out — the other phone may be waiting for authorization, or this port is unusable</string>
+    <string name="msg_tried_5555">Port 5555 was also tried: %1$s</string>
+    <string name="msg_need_connect">Device is not reachable right now</string>
+    <string name="msg_reading_info">Reading device info — the other phone is still finishing authorization, a few seconds</string>
+
+    <!-- 鏡像 -->
+    <string name="mirror_title">Mirroring %1$s</string>
+    <string name="mirror_connecting">Starting the video stream…</string>
+    <string name="mirror_failed">Cannot start mirroring: %1$s</string>
+    <string name="mirror_ended">The connection ended</string>
+    <string name="mirror_btn_back">Back</string>
+    <string name="mirror_btn_home">Home</string>
+    <string name="mirror_btn_recents">Recents</string>
+    <string name="mirror_btn_rotate">Rotate</string>
+    <string name="mirror_btn_sound_on">Sound</string>
+    <string name="mirror_btn_sound_off">Mute</string>
+    <string name="mirror_btn_sound_off_all">Off</string>
+    <string name="mirror_no_audio">The host is not sending audio</string>
+    <string name="mirror_audio_back">Audio back on — the picture was not interrupted</string>
+    <string name="mirror_host_muted">Host muted — you can still hear it</string>
+    <string name="mirror_host_audible">Host speaker back on</string>
+    <string name="mirror_follow_on">Following this phone\'s orientation</string>
+    <string name="mirror_follow_off">Orientation sync off — use Rotate</string>
+    <string name="mirror_host_locked">The host app locks its orientation — keeping this screen aligned with it</string>
+    <string name="mirror_btn_vol_up">Vol+</string>
+    <string name="mirror_btn_vol_down">Vol−</string>
+    <string name="mirror_btn_power">Power</string>
+    <string name="mirror_btn_close">Exit</string>
+
+    <!-- 工具列「設置」選單 -->
+    <string name="mirror_btn_more">Settings</string>
+    <string name="mirror_btn_keyboard">Keys</string>
+    <string name="menu_follow">Follow this phone\'s orientation</string>
+    <string name="msg_keyboard_hint">Using this phone\'s keyboard — tap the text field on the remote screen first, then type</string>
+    <string name="menu_paste">Paste this phone\'s clipboard</string>
+    <string name="msg_paste_sent">Sent %1$d characters</string>
+    <string name="msg_paste_failed">The other phone did not paste — long-press there and choose Paste</string>
+    <string name="msg_clipboard_empty">Nothing to paste — this phone\'s clipboard is empty</string>
+    <string name="menu_quality">Video quality…</string>
+    <string name="menu_stay_awake">Keep host screen on</string>
+    <string name="menu_audio">Audio…</string>
+    <string name="menu_reconnect">Reconnect</string>
+    <string name="menu_screen_off">Turn host screen off (saves power)</string>
+    <string name="menu_screen_on">Turn host screen on</string>
+    <string name="menu_screenshot">Screenshot host screen</string>
+
+    <string name="shot_started">Taking screenshot…</string>
+    <string name="shot_saved">Screenshot saved to %1$s</string>
+    <string name="shot_failed">Screenshot failed: %1$s</string>
+    <string name="msg_host_screen_off">Host screen off — mirroring continues</string>
+    <string name="msg_host_screen_on">Host screen back on</string>
+
+    <string name="msg_need_reconnect">Takes effect on the next connection</string>
+
+    <string name="dlg_quality_title">Video quality</string>
+    <string-array name="quality_items">
+        <item>Low · 720p / 2 Mbps / 30 fps</item>
+        <item>Standard · 1280p / 6 Mbps / 60 fps</item>
+        <item>High · 1600p / 12 Mbps / 60 fps</item>
+    </string-array>
+
+    <string name="dlg_audio_title">Audio</string>
+    <string-array name="audio_items">
+        <item>Both sides hear it · host speaker stays on</item>
+        <item>Only me · host speaker muted</item>
+        <item>No audio · nothing is captured, host speaker untouched</item>
+    </string-array>
+
+    <string name="mirror_restarting">Applying settings — reconnecting…</string>
+    <string name="mirror_reconnecting">Connection lost — reconnecting (%1$d/3)…</string>
+    <string name="mirror_reconnect_failed">Could not reconnect. Go back and try again.</string>
+
+    <!-- 安裝進度 -->
+    <string name="progress_preparing">Preparing… %1$d MB</string>
+    <!-- %% 是必要的：這串有格式參數，單獨一個 % 會被 aapt 當成格式錯誤 -->
+    <string name="progress_push">%1$d%% — %2$d / %3$d MB</string>
+    <string name="progress_installing">Sent. The other phone is installing now — %1$d s (this step has no progress to show)</string>
+    <string name="progress_done">Done</string>
+    <!-- 進度條停在 100% 但安裝其實失敗了：文字一定要說清楚，不然會被當成成功 -->
+    <string name="progress_failed">Failed</string>
+
+    <!-- 日誌 -->
+    <string name="btn_logs">Logs</string>
+    <string name="dlg_logs_title">Log</string>
+    <string name="log_empty">Nothing logged yet.</string>
+    <string name="log_export">Export</string>
+    <string name="log_clear">Clear</string>
+    <string name="log_export_subject">OmniADB Client log</string>
+    <string name="log_share_title">Share log</string>
+    <string name="log_exported">Log exported: %1$s</string>
+    <string name="log_export_failed">Export failed: %1$s</string>
+    <string name="log_copied">No app to share with — the log was copied to the clipboard</string>
+    <string name="log_cleared">Log cleared</string>
+</resources>

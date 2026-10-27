@@ -1,0 +1,71 @@
+name: 問題回報
+description: 連不上、鏡像黑屏、傳檔失敗等
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        這個專案大量依賴實機行為，**沒有裝置資訊幾乎無法重現**。
+        請把下面幾欄填完整，尤其是日誌 —— App 內「設置 → 匯出日誌」可以直接產出。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 發生什麼事
+      description: 你做了什麼、預期看到什麼、實際看到什麼
+      placeholder: |
+        1. 在 A 機按「鏡像」
+        2. 畫面停在「檢查中」不動
+        3. 預期 3 秒內出現對方桌面
+    validations:
+      required: true
+
+  - type: input
+    id: client-device
+    attributes:
+      label: 控制端（A 機）
+      description: 型號 / Android 版本 / ROM
+      placeholder: Samsung SM-G9810 / Android 13 / One UI 5
+    validations:
+      required: true
+
+  - type: input
+    id: host-device
+    attributes:
+      label: 被控端（B 機）
+      description: 型號 / Android 版本 / ROM
+      placeholder: POCO 2412DPC0AG / Android 15 / HyperOS
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Client 版本
+      description: App 內「設置」頁最下方
+      placeholder: 0.4.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 哪一塊
+      options:
+        - 掃描 / 配對 / 授權
+        - 安裝 Host
+        - 鏡像（畫面 / 觸控 / 鍵盤 / 音訊）
+        - 檔案總管
+        - 剪貼簿
+        - 建置 / 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: 日誌
+      description: 「設置 → 匯出日誌」的內容，或 `adb logcat` 相關片段。太長可只貼錯誤前後 50 行
+      render: text
+    validations:
+      required: false

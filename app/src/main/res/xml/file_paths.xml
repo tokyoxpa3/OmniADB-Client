@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 匯出的日誌快照（DiagLog.export 寫在 cacheDir） -->
+    <cache-path name="cache" path="." />
+    <!-- files/logs 底下那兩代原始日誌，除錯時也可以直接分享 -->
+    <files-path name="files" path="." />
+</paths>

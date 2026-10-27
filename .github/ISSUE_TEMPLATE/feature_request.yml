@@ -1,0 +1,33 @@
+name: 功能建議
+description: 想加什麼、或某個流程不好用
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到什麼不便
+      description: 先講情境，不用急著提解法
+      placeholder: 傳一個 2 GB 的資料夾到一半切去回訊息，回來就斷了，要重傳
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你希望怎麼解決
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 這跟哪個現有功能有關
+      options:
+        - 鏡像
+        - 檔案總管
+        - 剪貼簿
+        - 安裝 / 配對
+        - 全新功能
+        - 不確定
+    validations:
+      required: true

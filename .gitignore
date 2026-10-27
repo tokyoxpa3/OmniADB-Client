@@ -1,0 +1,32 @@
+# Gradle
+.gradle/
+build/
+
+# 機器相關設定（sdk.dir 是本機絕對路徑，進版控會讓別人建不起來）
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+captures/
+.externalNativeBuild
+.cxx
+
+# 建置產物（最後匹配的規則勝出，所以 assets 的 negation 必須寫在 *.apk 之後）
+*.apk
+*.aab
+!app/src/main/assets/*.apk
+!gradle/wrapper/gradle-wrapper.jar
+
+# 簽章材料
+*.jks
+*.keystore
+keystore.properties
+
+# 開發雜物：探測腳本、除錯截圖、暫存 log（約 150 個檔 / 87 MB）
+.probe/
+
+# OS noise
+.DS_Store
+Thumbs.db

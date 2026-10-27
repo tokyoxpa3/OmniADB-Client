@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    只影響 debug 建置：把 MirrorActivity 開成 exported，讓測試腳本可以
+        adb shell am start -n com.omniadb.client/.MirrorActivity -e host <IP> -e port 5555
+    直接進鏡像畫面。
+
+    為什麼需要：這台測試機（SM-G9810）的 `input tap` 完全沒反應（實測，
+    邏輯座標與物理座標都試過），沒辦法用「點卡片」的方式進 MirrorActivity。
+
+    release 建置不含這個檔案 ⇒ 正式 APK 的 MirrorActivity 仍然是 exported=false。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <activity
+            android:name=".MirrorActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+        <!-- 檔案總管一樣：測試腳本要能直接跳進去，不必先點卡片 -->
+        <activity
+            android:name=".FilesActivity"
+            android:exported="true"
+            tools:replace="android:exported" />
+    </application>
+
+</manifest>

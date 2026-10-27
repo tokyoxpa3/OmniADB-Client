@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    自適應圖示（Android 8.0+）。minSdk 是 26，所以不需要準備各密度的 PNG 備援
+    —— 這一個檔案就是所有情況下的圖示。
+
+    圖是使用者提供的成品（repo 根目錄的 icon.jpg）：綠→藍漸層的圓角卡，上面兩支手機、
+    一個箭頭與「SCRCPY」字樣。它本身就是一張「完整圖示」，所以這裡不做前景／背景
+    拆層，直接滿版鋪在 108dp 圖層上，形狀交給系統遮罩去裁 —— 圓形、方形、水滴形
+    遮罩都不會露白邊。
+
+    唯一的處理在圖片本身（產生腳本見 README 的「啟動器圖示」一節）：
+    原圖的圓角卡外面是白底，若直接滿版會在白角露白，所以先往內裁掉外圈光暈、
+    再用模糊漸層把四周補平。改圖時照同一個流程重做就不會出現白色接縫。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_bg" />
+    <foreground android:drawable="@drawable/ic_launcher_art" />
+</adaptive-icon>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    啟動器圖示的底色。
+
+    圖示本體（drawable-nodpi/ic_launcher_art.webp）是滿版鋪在 108dp 上的，
+    所以這個顏色正常情況下看不到 —— 它只是「遮罩比圖層大」或圖層被裁時的保險，
+    取值是圖示最外圈的平均色，就算露出來也接得上去。
+-->
+<resources>
+    <color name="ic_launcher_bg">#FF287788</color>
+</resources>
