@@ -581,8 +581,8 @@ W OmniADB-Client: 音訊連續 5 秒全零 —— 對方沒在播，或那支 Ap
 -e typedelay 6         上面那個延到 6 秒
 -e sinksize 40         把接收器放大到 40dp（不同輸入法對「這個編輯區算不算數」判斷不同）
 -e heartbeat 1         每 3 秒在主執行緒寫一行，用來分辨「卡死」和「只是沒事件」
--e screenoff 1         連上 5 秒後關掉對方實體螢幕（驗鏡像照常）
--e screenon 1          連上 5 秒後把對方螢幕開回來
+-e screenoff 1         連上 5 秒後關掉對方實體螢幕（驗鏡像照常；**會一併寫入「關閉螢幕省電」偏好**）
+-e screenon 1          連上 5 秒後把對方螢幕開回來（同時清掉上面那個偏好）
 -e screenoffat 8       連上 8 秒後關掉對方螢幕
 ```
 
@@ -1134,7 +1134,7 @@ SYNC 協定只有 `STAT` / `LIST` / `RECV` / `SEND`，**沒有「給我縮圖」
 
 #### 對方螢幕：關掉面板，串流不動
 
-「設置 → 關閉對方螢幕（省電）」送的是 scrcpy 的 `TYPE_SET_DISPLAY_POWER`
+「設置 → 關閉螢幕省電」送的是 scrcpy 的 `TYPE_SET_DISPLAY_POWER`
 （4.1 是 `{10, 0/1}`），只讓面板不亮，SurfaceFlinger 照常合成 —— 鏡像、觸控、音訊
 都不受影響。這和「電源」不同：電源鍵會真的休眠、鎖屏，連線可能因此斷掉。
 

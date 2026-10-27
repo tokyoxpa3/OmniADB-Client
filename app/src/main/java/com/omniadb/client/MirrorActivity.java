@@ -348,11 +348,11 @@ public class MirrorActivity extends Activity {
         // 只能靠 extra：工具列會自動收起、選單又要連點兩層，adb 點不到。
         String screenOff = getIntent().getStringExtra("screenoff");
         if ("1".equals(screenOff) || "true".equals(screenOff)) {
-            ui.postDelayed(() -> setHostScreen(false), 5_000);
+            ui.postDelayed(() -> applyHostScreenOff(true), 5_000);
         }
         String screenOn = getIntent().getStringExtra("screenon");
         if ("1".equals(screenOn) || "true".equals(screenOn)) {
-            ui.postDelayed(() -> setHostScreen(true), 5_000);
+            ui.postDelayed(() -> applyHostScreenOff(false), 5_000);
         }
         String screenOffAt = getIntent().getStringExtra("screenoffat");
         if (screenOffAt != null) {
@@ -360,7 +360,7 @@ public class MirrorActivity extends Activity {
                 int sec = Integer.parseInt(screenOffAt.trim());
                 if (sec > 0) {
                     DiagLog.i(TAG, "測試：" + sec + " 秒後關閉對方螢幕");
-                    ui.postDelayed(() -> setHostScreen(false), sec * 1000L);
+                    ui.postDelayed(() -> applyHostScreenOff(true), sec * 1000L);
                 }
             } catch (NumberFormatException ignored) {
                 // 格式不對就不理它
@@ -1416,6 +1416,21 @@ public class MirrorActivity extends Activity {
     }
 
     /**
+     * 「關閉螢幕省電」的唯一入口：<b>先記住偏好</b>，再把對方面板設成對應狀態。
+     *
+     * <p>偏好（{@link Settings#hostScreenOff}）和「對方現在是亮是暗」
+     * （{@link ScrcpySession#isDisplayPowerOff()}）是兩件事，刻意分開放。
+     * 把「寫偏好」集中在這裡，是為了讓選單、連上自動套用、測試入口走<b>完全相同</b>的路徑 ——
+     * 測試入口如果只呼叫 {@link #setHostScreen(boolean)}，驗到的就不是使用者實際走的那條。
+     *
+     * @param off {@code true} ＝ 關掉對方面板省電
+     */
+    private void applyHostScreenOff(boolean off) {
+        Settings.setHostScreenOff(this, off);
+        setHostScreen(!off);
+    }
+
+    /**
      * 切換<b>對方喇叭</b>要不要出聲。
      *
      * <p><b>這顆按鈕管的是遠端，不是本機。</b>
@@ -1583,8 +1598,7 @@ public class MirrorActivity extends Activity {
                     // 送出去的永遠是絕對值：勾→關、取消→開，所以就算上一次
                     // 來不及開回來，取消勾選一定能把對方救回亮著的狀態。
                     boolean want = !Settings.hostScreenOff(this);
-                    Settings.setHostScreenOff(this, want);
-                    setHostScreen(!want);
+                    applyHostScreenOff(want);
                     item.setChecked(want);
                     return true;
                 }
@@ -2412,7 +2426,7 @@ public class MirrorActivity extends Activity {
                                 // 勾過「關閉螢幕省電」的人，每次連上都自動套用。
                                 // 放在 onReady 之後：控制通道要通了才送得出去。
                                 if (Settings.hostScreenOff(MirrorActivity.this)) {
-                                    setHostScreen(false);
+                                    applyHostScreenOff(true);
                                 }
                                 runPendingTestInput();
                             });
