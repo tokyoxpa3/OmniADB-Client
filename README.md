@@ -1,6 +1,9 @@
 # OmniADB-Client
 
-> **用手機控制另一支手機。** 掃描 → 配對 → 安裝 Host → 連線，全程不需要電腦。
+**English** · [繁體中文](README.zh-TW.md)
+
+> **Control one phone from another.** Scan → pair → install the Host → connect. No computer
+> in the loop at any point.
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
@@ -11,204 +14,214 @@
 </p>
 
 <p align="center">
-  <img src="shots/mirror1.png" width="760" alt="A 機全螢幕顯示 B 機桌面，上方是鏡像工具列">
+  <img src="shots/mirror1.png" width="760" alt="Phone A showing phone B's desktop full screen, with the mirror toolbar on top">
 </p>
 
-`OmniADB` 家族的第三塊拼圖，也是目前的主力：
+The third piece of the `OmniADB` family, and the one that gets the most use:
 
-| 專案 | 角色 | 平台 | 狀態 |
+| Project | Role | Platform | Status |
 |---|---|---|---|
-| [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.0** |
-| `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
+| [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | Host side — keeps the ADB port pinned, comes back after reboot | Android | ✅ Released |
+| **`OmniADB-Client`** | **Controller — phone A drives phone B** | **Android** | **✅ 0.5.0** |
+| `OmniADB` (Python) | Desktop console / multi-device wall | Win / mac / Linux | ⏸ Shelved |
 
-## 要解決的問題
+## The problem
 
-電腦版的 `python -m omniadb setup` 已經很順，但它要求你**人在電腦前**。
-實際場景常常不是這樣：手機放在架上、在另一個房間、或根本沒有電腦在旁邊。
+The desktop version (`python -m omniadb setup`) works well, but it assumes you're sitting
+at a computer. In practice you often aren't: the phone is on a shelf, in another room, or
+there's simply no computer around.
 
-所以把整套流程搬到手機上 —— 兩支手機、同一個 Wi-Fi，就能掃描、配對、安裝、鏡像。
-
----
-
-## 能做什麼
-
-### 連線
-
-| 功能 | 說明 |
-|---|---|
-| 掃描 | mDNS 自動找附近開著無線偵錯的手機（`_adb-tls-connect` / `_adb-tls-pairing`） |
-| 手動新增 | 直接打 `IP:埠`，跨網段或 mDNS 被擋時用 |
-| 配對 | 輸入 6 位數配對碼；對方按「允許」後卡片自己變「已連上」，不用再點一次 |
-| 安裝 Host | 一鍵把被控端釘在 5555 並跑完六步授權，之後重開機、換 Wi-Fi 都自己爬回來 |
-| 記住的裝置 | IP + 型號 + 序號，同一台只留一筆；下次開 App 直接列出來 |
-
-### 鏡像
-
-| 功能 | 說明 |
-|---|---|
-| 全螢幕鏡像 | 等比例、多點觸控、挖孔與瀏海自動讓位；延遲約 100 ms 級（同一個 Wi-Fi） |
-| 音訊 | 三種模式：**兩邊都有聲** / **只有我這邊有聲** / **不要聲音**，切換不會中斷畫面 |
-| 畫質 | 720p/2 Mbps、1280p/6 Mbps、1600p/12 Mbps 三檔 |
-| 旋轉 | 手動轉 90°，或「跟隨本機方向」讓對方跟著你的手機轉 |
-| 關閉螢幕省電 | 對方**面板**關掉、串流照常 —— 適合掛著當監看螢幕；會記住偏好，離開時自動開回 |
-| 截圖 | 抓對方原生解析度的畫面，不含本機的工具列 |
-| 錄影 | 邊看邊錄成 MP4，不重編碼（畫質與串流一致）；有音訊時自動帶一條 AAC 音軌 |
-
-### 操作
-
-| 功能 | 說明 |
-|---|---|
-| 工具列 | 返回 / 主頁 / 多工 / 有聲·靜音 / 鍵盤 / 設置 / 離開，5 秒沒動自動收起 |
-| 本機輸入法直通 | 用**自己的**輸入法打字（注音、拼音、英文都行），打完直接出現在對方輸入框 |
-| 實體鍵盤 | 外接鍵盤也能直接打 |
-| 貼上本機剪貼簿 | 已經複製好的內容，一鍵送過去並代按貼上 |
-| 剪貼簿同步 | 兩邊複製的內容會互相流動（純文字） |
-| 音量與電源 | 面板式音量（按住連發）、按一下電源鍵 |
-
-### 檔案
-
-| 功能 | 說明 |
-|---|---|
-| 雙窗格 | 「本機 / 對方」分頁，各自瀏覽 |
-| 互傳 | 多選後整批傳，資料夾會遞迴 |
-| 管理 | 新增資料夾、改名、刪除、詳細資訊、排序、跳到路徑、常用位置 |
-| 縮圖 | 圖片在本機問系統、在對方抓回來解；兩層快取，只在可見時做 |
-| 搬移 | 剪下／貼上（同側用 `cp`/`mv`，跨側走串流） |
-| 撞名處理 | 覆蓋 / 兩份都留 / 取消，不預設任何一個 |
+So the whole flow moved onto the phone itself — two phones on the same Wi-Fi are enough to
+scan, pair, install and mirror.
 
 ---
 
-## 怎麼用
+## What it does
 
-### 第一次（需要動手兩下，這是 Android 的安全邊界）
+### Connecting
 
-1. **B 機**：開發者選項 → 開「無線偵錯」
-2. **B 機**：無線偵錯 → 「使用配對碼配對裝置」→ 看到 `IP:埠` 與 6 位數
-3. **A 機**：按「掃描」，或「手動新增」輸入 B 的 IP
-4. **A 機**：在那一列按「配對授權」→ 填配對埠與 6 位數
-5. **A 機**：連上後按「安裝 Host」→ B 的 ADB 固定在 5555，重開機也會自己爬回來
+| Feature | Details |
+|---|---|
+| Scan | mDNS discovery of nearby phones with wireless debugging on (`_adb-tls-connect` / `_adb-tls-pairing`) |
+| Manual add | Type `IP:port` — for cross-subnet setups or when mDNS is blocked |
+| Pair | Enter the 6-digit code; once the other side taps "Allow" the card flips to "Connected" by itself |
+| Install Host | One tap pins the Host to port 5555 and runs all six authorization steps, so it survives reboots and Wi-Fi changes |
+| Remembered devices | IP + model + serial, deduplicated by serial; they show up next time you open the app |
 
-> 兩支手機要在同一個 Wi-Fi、同一個網段。第一次配對時 B 會跳「允許 USB 偵錯嗎」，
-> 勾「一律允許」就不會每次問。
+### Mirroring
 
-### 日常
+| Feature | Details |
+|---|---|
+| Full-screen mirror | Aspect-correct, multi-touch, hole-punch and notch aware; ~100 ms latency on the same Wi-Fi |
+| Audio | Three modes: **both sides**, **client only**, **muted** — switching never interrupts the video |
+| Quality | 720p/2 Mbps, 1280p/6 Mbps, 1600p/12 Mbps |
+| Rotation | Rotate 90° manually, or let the host follow your phone's orientation |
+| Host screen off | Turns the host **panel** off while streaming continues — handy for a monitoring phone; remembered across sessions and restored on exit |
+| Screenshot | Native resolution, without the client's toolbar |
+| Recording | Record while watching, straight into MP4 with no re-encoding (same quality as the stream); adds an AAC audio track when audio is on |
 
-A 機開 App → 清單直接顯示 B（含電量、溫度、解析度）→ 點「鏡像」開始控制。
+### Controlling
 
-### 鏡像畫面
+| Feature | Details |
+|---|---|
+| Toolbar | Back / Home / Recents / Sound / Keyboard / Settings / Exit — auto-hides after 5 s |
+| Your own IME | Type with **your** keyboard (Zhuyin, Pinyin, English…); the text lands in the host's input field |
+| Physical keyboard | Works too |
+| Paste local clipboard | Send what you already copied and tap paste on the other side |
+| Clipboard sync | Text flows both ways |
+| Volume & power | Hold-to-repeat volume panel, and a power button |
 
-頂端一條會自動收起的工具列，**只有七顆**：返回 / 主頁 / 多工 / 有聲·靜音 / 鍵盤 / 設置 / 離開。
-5 秒沒動就收起來，點右上角的 `≡` 再叫回來。系統返回鍵刻意不接管 —— 那是離開鏡像最直覺的方式。
+### Files
 
-**「設置」選單**分兩段（上面是對對方動手，下面是本機設定）：
+| Feature | Details |
+|---|---|
+| Two panes | Separate "local" and "remote" tabs |
+| Transfer | Multi-select and batch transfer; folders are recursive |
+| Manage | New folder, rename, delete, info, sort, jump to path, bookmarks |
+| Thumbnails | Local images via the system, remote ones fetched and decoded; two-level cache, only while visible |
+| Move | Cut and paste (same side uses `cp`/`mv`, cross-side goes through the stream) |
+| Name collisions | Overwrite / keep both / cancel — nothing is picked for you |
 
-| 選項 | 做什麼 | 要重連嗎 |
+---
+
+## How to use it
+
+### First time (two taps on the host — that's the Android security boundary)
+
+1. **Phone B**: Developer options → enable **Wireless debugging**
+2. **Phone B**: Wireless debugging → "Pair device with pairing code" → note the `IP:port` and the 6-digit code
+3. **Phone A**: tap **Scan**, or **Add manually** and type B's IP
+4. **Phone A**: tap **Pair** on that row → enter the pairing port and the 6-digit code
+5. **Phone A**: once connected, tap **Install Host** → B's ADB is pinned to 5555 and comes back after a reboot
+
+> Both phones must be on the same Wi-Fi and the same subnet. The first pairing makes B ask
+> "Allow USB debugging?" — tick "Always allow" so it stops asking.
+
+### Day to day
+
+Open the app on phone A → B is already in the list (with battery, temperature, resolution) →
+tap **Mirror**.
+
+### The mirror screen
+
+A single auto-hiding toolbar at the top, **seven buttons only**: Back / Home / Recents /
+Sound / Keyboard / Settings / Exit. It collapses after 5 seconds; tap `≡` in the corner to
+bring it back. The system back button is deliberately left alone — it's the most natural way
+to leave the mirror.
+
+**The "Settings" menu** has two sections (actions on the host, then client-side settings):
+
+| Item | What it does | Needs reconnect |
 |---|---|---|
-| 旋轉 | 鎖定對方方向，轉完本機才跟著轉 | 不用 |
-| 跟隨本機方向 ☑ | 跟著本機感測器自動轉 | 不用 |
-| 音量 | 面板式：`−` / `＋`，按住會連發 | 不用 |
-| 電源 | 按一下對方的電源鍵（休眠／喚醒） | 不用 |
-| 關閉螢幕省電 ☑ | 對方面板關掉、串流照常；**會記住** | 不用 |
-| 貼上本機剪貼簿 | 送過去並代按貼上 | 不用 |
-| 截圖 / 錄影 | 存到本機 `Pictures/OmniADB`、`Movies/OmniADB` | 不用 |
-| 畫質… | 720p / 1280p / 1600p | **要** |
-| 對方螢幕保持常亮 ☑ | 對方不會自己睡著 | **要** |
-| 音訊… | 兩邊都有聲 / 只有我有聲 / 不要聲音 | 不用 |
-| 重新連線 | 手動重連 | — |
+| Rotate | Locks the host orientation, then follows | No |
+| Follow my orientation ☑ | Track the client's sensor | No |
+| Volume | Panel with `−` / `＋`, hold to repeat | No |
+| Power | Press the host's power button (sleep / wake) | No |
+| Host screen off ☑ | Panel off, stream keeps running; **remembered** | No |
+| Paste local clipboard | Sends the clipboard and taps paste | No |
+| Screenshot / Record | Saved to `Pictures/OmniADB` and `Movies/OmniADB` | No |
+| Quality… | 720p / 1280p / 1600p | **Yes** |
+| Keep host screen on ☑ | Stops the host from sleeping | **Yes** |
+| Audio… | Both sides / client only / muted | No |
+| Reconnect | Manual reconnect | — |
 
-勾選項（☑）勾＝現在開著。
+Checkboxes (☑) mean "currently on".
 
 ---
 
-## 限制
+## Limitations
 
-有些是 Android 的硬限制，不是這個 App 沒做：
+Some of these are Android's hard limits, not missing features:
 
-| 限制 | 說明 |
+| Limitation | Why |
 |---|---|
-| 被控端要 Android 8.0+ | 基本功能的下限 |
-| **鏡像音訊要 Android 13+** | `AudioPlaybackCapture` 的硬門檻；12 以下只能看畫面 |
-| 只抓得到媒體與遊戲聲音 | 通知音、通話、鈴聲抓不到 |
-| App 可以拒絕被錄 | `allowAudioPlaybackCapture=false`（DRM 影音、少數播放器）—— 這時工具列的喇叭鈕會變暗 |
-| 小米 / HyperOS 安裝要手動確認 | 系統會跳「繼續安裝」，10 秒倒數偶爾會贏過自動代按 |
-| 長傳輸中切到別的 App 會斷 | 還沒有前景服務（見下面「已知問題」） |
-| 剪貼簿只支援純文字 | 圖片與檔案目前不傳 |
-| 需要同一個 Wi-Fi | 走的是 ADB over TCP，不是雲端穿透 |
+| Host needs Android 8.0+ | Baseline for the app |
+| **Mirror audio needs Android 13+** | `AudioPlaybackCapture` only exists from 13; below that you get video only |
+| Media and game audio only | Notifications, calls and ringtones can't be captured |
+| Apps may opt out | `allowAudioPlaybackCapture=false` (DRM content, a few players) — the sound button dims when this happens |
+| Xiaomi / HyperOS asks for confirmation | The system shows "Continue install"; its 10-second countdown occasionally beats the auto-tap |
+| Long transfers die if you leave the app | No foreground service yet (see Known issues) |
+| Clipboard is text only | Images and files aren't transferred |
+| Same Wi-Fi required | This is ADB over TCP, not a cloud relay |
 
-## 已知問題
+## Known issues
 
-- **前景服務**：檔案傳輸中切到別的 App 會斷線（`onStop` 關連線），長傳輸需要它撐著；鏡像目前只靠子母畫面
-- 剪貼簿：`ClipData` 的圖片 / 檔案還沒處理
-- 小米安裝確認框被 10 秒倒數搶先時，目前只會在對話框裡解釋原因，還沒做到「重試一次」
-- 檔案總管還缺：拖曳搬移、影片縮圖、覆蓋前預覽兩邊的大小／時間
-- 沒有自動化測試：`test/`、`androidTest/` 都還是空的，全靠實機驗證
+- **No foreground service**: switching away from the app during a transfer closes the
+  connection (`onStop`), so long transfers need it; mirroring currently relies on PiP only
+- Clipboard: `ClipData` images and files are not handled
+- When the Xiaomi installer's countdown wins, the dialog only explains why — no "retry" yet
+- File manager is missing drag-to-move, video thumbnails, and a size/date preview before overwriting
+- No automated tests: `test/` and `androidTest/` are empty, everything is verified on real devices
 
 ---
 
-## 建置
+## Build
 
 ```bash
 ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk（debug 金鑰簽章，可直接 sideload）
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk (debug-key signed, sideload-ready)
 ```
 
-需要 **JDK 17** 與 **Android SDK**（`compileSdk 35`）。
+Requires **JDK 17** and the **Android SDK** (`compileSdk 35`).
 
-`local.properties` 不進版控（裡面是本機絕對路徑），新 clone 下來要先自己建一份：
+`local.properties` is not committed (it holds an absolute path), so a fresh clone needs one:
 
 ```properties
 sdk.dir=/path/to/Android/Sdk
 ```
 
-用 Android Studio 開啟專案時會自動產生，命令列建置則需要手動寫。
+Android Studio creates it for you; command-line builds need it written by hand.
 
-> 手機上裝不起來、又不想清資料的話，用 `./gradlew assembleDebug -PdevSuffix`：包名會變成
-> `com.omniadb.client.dev`，可以和原本那顆並存（注意 `FileProvider` 的 authorities 會跟著
-> 包名走，所以兩個包只能存在一個）。
+> If a phone refuses to update the app and you'd rather not wipe its data, use
+> `./gradlew assembleDebug -PdevSuffix`: the package becomes `com.omniadb.client.dev` and can
+> coexist with the regular one (note that the `FileProvider` authority follows the package
+> name, so only one of the two can be installed at a time).
 
-**關於 release 簽章**
+**About the release signature**
 
-`build.gradle.kts` 的 release 建置刻意沿用 debug 金鑰：
+The release build deliberately reuses the debug key:
 
 ```kotlin
 signingConfig = signingConfigs.getByName("debug")
 ```
 
-這樣任何人都能 `assembleRelease` 出一顆可直接 sideload 的 APK，不需要你分享簽章檔。
-代價是它**不能上架 Google Play**（會被拒），而且憑證指紋顯示為 `Android Debug`。
-要正式發布商店版，請自備 keystore 並改成讀 `keystore.properties`（該檔已在 `.gitignore` 內）。
+That way anyone can `assembleRelease` a sideload-ready APK without you sharing a keystore.
+The trade-off is that it **cannot go on Google Play** (it will be rejected) and the
+certificate reads `Android Debug`. For a store release, bring your own keystore and read it
+from `keystore.properties` (already in `.gitignore`).
 
 ---
 
-## 安全性
+## Security
 
-- **ADB 等同完整系統控制權。** 只在自己的家用網路使用，
-  不要在公共 Wi-Fi 開著無線偵錯，也不要把 5555 埠轉發到外網。
-- 控制端的 ADB 金鑰存在 App 私有目錄，所有遠端裝置共用同一把 ——
-  這樣 B 的「已授權裝置」清單裡只有一條 `OmniADB-Client`。
-- 解除安裝 App 會清掉金鑰，需要重新配對（跟 Host 的 `WRITE_SECURE_SETTINGS` 一樣）。
-
----
-
-## 致謝
-
-- [`libadb-android`](https://github.com/MuntashirAkon/libadb-android) — ADB 協定與 SPAKE2 配對
-- [`scrcpy`](https://github.com/Genymobile/scrcpy)（Apache-2.0）— 影像管線與控制協定
-  （只用它的 `scrcpy-server.jar`，客戶端是自己寫的：MediaCodec + SurfaceView）
-- `OmniADB-Host` — 同一套金鑰管理與 provider 初始化
+- **ADB is full system control.** Use it on your own home network only — don't leave wireless
+  debugging on in public Wi-Fi, and don't forward port 5555 to the internet.
+- The client's ADB key lives in the app's private directory and is shared across all remote
+  devices, so the host's "authorized devices" list has exactly one `OmniADB-Client` entry.
+- Uninstalling the app destroys the key and requires pairing again (same as the Host's
+  `WRITE_SECURE_SETTINGS`).
 
 ---
 
-## 授權
+## Credits
 
-本專案以 **MIT** 釋出，見 [`LICENSE`](LICENSE)。
-
-第三方元件的授權（libadb-android 為 GPL-3.0-or-later **或** Apache-2.0 雙授權，
-本專案選擇 Apache-2.0 分支；scrcpy、Conscrypt、AndroidX 為 Apache-2.0；
-Bouncy Castle 為 MIT 風格）整理在
-[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)，上游原始授權檔在 `LICENSES/`。
+- [`libadb-android`](https://github.com/MuntashirAkon/libadb-android) — ADB protocol and SPAKE2 pairing
+- [`scrcpy`](https://github.com/Genymobile/scrcpy) (Apache-2.0) — video pipeline and control protocol
+  (only its `scrcpy-server.jar` is used; the client is our own: MediaCodec + SurfaceView)
+- `OmniADB-Host` — shared key handling and provider setup
 
 ---
 
-<sub>要改這個專案的話，實作細節、實測數據與踩過的坑都在 [`docs/INTERNALS.md`](docs/INTERNALS.md)。</sub>
+## License
+
+Released under the **MIT** license, see [`LICENSE`](LICENSE).
+
+Third-party licenses (libadb-android is GPL-3.0-or-later **or** Apache-2.0 dual-licensed,
+this project takes the Apache-2.0 branch; scrcpy, Conscrypt and AndroidX are Apache-2.0;
+Bouncy Castle is MIT-style) are collected in
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md), with upstream license files under `LICENSES/`.
+
+---
+
+<sub>If you plan to modify the project: implementation notes, measurements and the pitfalls
+we hit are in [`docs/INTERNALS.md`](docs/INTERNALS.md) (written in Chinese).</sub>
