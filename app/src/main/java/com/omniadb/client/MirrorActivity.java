@@ -154,6 +154,17 @@ public class MirrorActivity extends Activity {
     /** 把本機擺放方向同步給對方（規則見 {@link OrientationSync}）。 */
     private OrientationSync orientationSync;
 
+    /**
+     * 錄影（把碼流封裝成 MP4，見 {@link Recorder}）。
+     *
+     * <p>跟著 Activity 活一輩子，重連時只是「換一條 session 掛上去」——
+     * 錄影本身不跨連線（連線斷了就收檔），但物件不必重建。
+     */
+    private Recorder recorder;
+
+    /** 錄影中的紅點。有它使用者才知道還在錄（不然很容易錄了一個小時）。 */
+    private TextView recordDot;
+
     private boolean surfaceReady;
     private boolean sessionStarting;
     /** 已經退到背景（onStop）。啟動流程跑完時要據此決定「這個 session 還要不要」。 */
@@ -211,6 +222,8 @@ public class MirrorActivity extends Activity {
                 : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         orientationSync = new OrientationSync(this, () -> session, this::onIntent);
+        recorder = new Recorder(this,
+                (where, message) -> ui.post(() -> onRecordStopped(where, message)));
         clipboardSync = new ClipboardSync(this);
         seedClipboardForTest();
         typeForTest();
@@ -367,6 +380,36 @@ public class MirrorActivity extends Activity {
                 if (sec > 0) {
                     DiagLog.i(TAG, "測試：" + sec + " 秒後截圖");
                     ui.postDelayed(this::takeScreenshot, sec * 1000L);
+                }
+            } catch (NumberFormatException ignored) {
+                // 格式不對就不理它
+            }
+        }
+        // -e record 5            連上 5 秒後開始錄影
+        // -e recordstop 15       連上 15 秒後停止（沒給就一直錄到離開）
+        // 錄影那顆在「設置」選單裡，工具列又會自動收起 —— 用 adb 點它全靠運氣，
+        // 所以留這兩個入口，走的是跟選單完全相同的 toggleRecord()。
+        String record = getIntent().getStringExtra("record");
+        if (record != null) {
+            try {
+                int sec = Integer.parseInt(record.trim());
+                if (sec > 0) {
+                    DiagLog.i(TAG, "測試：" + sec + " 秒後開始錄影");
+                    ui.postDelayed(this::toggleRecord, sec * 1000L);
+                }
+            } catch (NumberFormatException ignored) {
+                // 格式不對就不理它
+            }
+        }
+        String recordStop = getIntent().getStringExtra("recordstop");
+        if (recordStop != null) {
+            try {
+                int sec = Integer.parseInt(recordStop.trim());
+                if (sec > 0) {
+                    DiagLog.i(TAG, "測試：" + sec + " 秒後停止錄影");
+                    ui.postDelayed(() -> {
+                        if (recorder != null && recorder.isRecording()) toggleRecord();
+                    }, sec * 1000L);
                 }
             } catch (NumberFormatException ignored) {
                 // 格式不對就不理它
@@ -707,6 +750,23 @@ public class MirrorActivity extends Activity {
             case ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE: return 1;
             case ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE: return 3;
             case ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT: return 2;
+            case ActivityInfo.SCREEN_ORIENTATION_PORTRAIT: return 0;
+            default:
+                // 還沒由我們指定（剛進場、或方向同步關著）—— 這時視窗方向是系統給的，
+                // 只能讀顯示器。一律回 0 會讓「開場前先鎖對方」把橫著拿的手機鎖成豎的，
+                // 300ms 後再被感測器糾正回來：白白多翻一次。
+                return displayRotation();
+        }
+    }
+
+    /** 顯示器現在的旋轉 → {@code Surface.ROTATION_*} 的 0/1/2/3。 */
+    @SuppressWarnings("deprecation")
+    private int displayRotation() {
+        Display d = getWindowManager().getDefaultDisplay();
+        switch (d.getRotation()) {
+            case Surface.ROTATION_90: return 1;
+            case Surface.ROTATION_180: return 2;
+            case Surface.ROTATION_270: return 3;
             default: return 0;
         }
     }
@@ -826,12 +886,18 @@ public class MirrorActivity extends Activity {
     protected void onDestroy() {
         hideBarNow();
         closeSession();
+        // 收掉錄影執行緒。close() 會等它把 trailer 寫完（最多 1.5 秒）——
+        // 不等也行，但那個檔案就會缺 moov、播放器打不開。
+        if (recorder != null) recorder.close();
         if (inputBg != null) inputBg.shutdownNow();
         super.onDestroy();
     }
 
     /** 關掉目前的連線（背景執行緒，close() 會關 socket 可能阻塞）。 */
     private void closeSession() {
+        // 錄影跟著連線走：影像串流沒了，錄下去只會得到一個停格的檔。
+        // stop() 不阻塞，收檔（muxer trailer、相簿 IS_PENDING）在錄影執行緒上做完才回呼。
+        if (recorder != null) recorder.stop();
         if (clipboardSync != null) clipboardSync.detach();
         final ScrcpySession s = session;
         session = null;
@@ -901,6 +967,20 @@ public class MirrorActivity extends Activity {
         tlp.gravity = Gravity.CENTER;
         root.addView(status, tlp);
 
+        // 錄影中的紅點。刻意放在左上角、跟著畫面（不跟工具列一起收起來）——
+        // 錄影是「一直在背景發生的事」，沒有任何提示的話很容易錄了半小時才想起來。
+        recordDot = new TextView(this);
+        recordDot.setText(R.string.record_dot);
+        recordDot.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        recordDot.setTextColor(0xFFFF453A);
+        recordDot.setShadowLayer(dp(2), 0, dp(1), 0x80000000);
+        recordDot.setPadding(dp(12), dp(6), dp(12), dp(6));
+        recordDot.setVisibility(View.GONE);
+        FrameLayout.LayoutParams rlp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rlp.gravity = Gravity.TOP | Gravity.START;
+        root.addView(recordDot, rlp);
+
         root.addView(buildHandle());
         root.addView(buildBar());
 
@@ -919,6 +999,7 @@ public class MirrorActivity extends Activity {
             }
             setTopMargin(bar, top + dp(4));
             setTopMargin(handle, top + dp(4));
+            setTopMargin(recordDot, top + dp(4));
             return insets;
         });
         return root;
@@ -1459,6 +1540,11 @@ public class MirrorActivity extends Activity {
         // 截圖放在「對對方動手」那一段：它抓的是<b>對方</b>的畫面（原生解析度、
         // 不含我們的工具列），不是「我這邊看到什麼」。
         menu.getMenu().add(GROUP_REMOTE, MENU_SCREENSHOT, 7, R.string.menu_screenshot);
+        // 錄影跟截圖同一段、同一個語意：錄的是對方那塊螢幕，不是本機視窗。
+        // 標題會隨狀態換（錄影中 → 停止錄影），不然錄完不知道要按哪裡停。
+        boolean recording = recorder != null && recorder.isRecording();
+        menu.getMenu().add(GROUP_REMOTE, MENU_RECORD, 8,
+                recording ? R.string.menu_record_stop : R.string.menu_record);
 
         menu.getMenu().add(GROUP_SETTINGS, MENU_PASTE, 8, R.string.menu_paste);
         menu.getMenu().add(GROUP_SETTINGS, MENU_QUALITY, 9, R.string.menu_quality);
@@ -1501,6 +1587,9 @@ public class MirrorActivity extends Activity {
                     return true;
                 case MENU_SCREENSHOT:
                     takeScreenshot();
+                    return true;
+                case MENU_RECORD:
+                    toggleRecord();
                     return true;
                 case MENU_PASTE:
                     pasteLocalClipboard();
@@ -1551,6 +1640,7 @@ public class MirrorActivity extends Activity {
     private static final int MENU_SCREEN_OFF = 11;
     private static final int MENU_SCREEN_ON = 12;
     private static final int MENU_SCREENSHOT = 13;
+    private static final int MENU_RECORD = 14;
 
     // ================================================================== 打字
 
@@ -1831,6 +1921,69 @@ public class MirrorActivity extends Activity {
         while ((n = is.read(buf)) > 0) os.write(buf, 0, n);
     }
 
+    // ================================================================== 錄影
+
+    /**
+     * 開／停錄影。
+     *
+     * <p><b>為什麼要主動送一次 {@code TYPE_RESET_VIDEO}：</b>MP4 的第一個樣本必須是
+     * 關鍵幀（IDR），而 scrcpy 的編碼器 GOP 是 10 秒 —— 按下錄影的當下多半在某個
+     * GOP 的中間。不催它的話，畫面要嘛開頭花屏，要嘛得空等最多 10 秒才真的開始錄。
+     * 送了之後對方會立刻重吐 config + 一個 IDR，通常 200ms 內就進入錄影狀態。
+     *
+     * <p>跟截圖不同，錄影<b>不另開連線</b>：它吃的是已經在解碼的那條碼流，
+     * 開新連線反而拿不到同一份畫面。
+     */
+    private void toggleRecord() {
+        if (recorder == null) return;
+
+        if (recorder.isRecording()) {
+            recorder.stop();        // 收檔在背景，完成後 onRecordStopped 會回報
+            return;
+        }
+
+        ScrcpySession s = session;
+        if (s == null || !s.isRunning()) {
+            Toast.makeText(this, R.string.record_need_connection, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        recorder.start();
+        if (!recorder.isRecording()) {
+            // 上一段還在收檔（按停止後立刻又按錄影）：佇列裡還有東西要寫完，
+            // 這時硬開新檔會把那一段的結尾吃掉。老實說一聲，使用者再按一次就好。
+            Toast.makeText(this, R.string.record_busy, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        s.requestVideoReset();
+        setRecordingIndicator(true);
+        Toast.makeText(this, R.string.record_started, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * 錄影結束（正常停止、斷線、或出錯）。在<b>主執行緒</b>被呼叫。
+     *
+     * @param where   存到哪裡；完全沒錄到東西時是 {@code null}
+     * @param message 錯誤訊息；正常結束時是 {@code null}
+     */
+    private void onRecordStopped(String where, String message) {
+        setRecordingIndicator(false);
+        if (isFinishing() || isDestroyed()) return;
+        if (message != null) {
+            Toast.makeText(this, getString(R.string.record_failed, message),
+                    Toast.LENGTH_LONG).show();
+        } else if (where != null) {
+            Toast.makeText(this, getString(R.string.record_stopped, where),
+                    Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, R.string.record_empty, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void setRecordingIndicator(boolean on) {
+        if (recordDot == null) return;
+        recordDot.setVisibility(on ? View.VISIBLE : View.GONE);
+    }
+
     /** 畫質三檔。改完直接重連（伺服器參數只能在啟動時給）。 */
     private void showQualityDialog() {
         final int[] values = {Settings.QUALITY_LOW, Settings.QUALITY_STANDARD, Settings.QUALITY_HIGH};
@@ -1899,6 +2052,11 @@ public class MirrorActivity extends Activity {
         status.setText(R.string.mirror_restarting);
         status.setVisibility(View.VISIBLE);
         closeSession();
+        // 舊連線的旋轉等待已經沒有意義。留著的話 pendingRotation 不為 null，
+        // 新連線的 syncNow() 會被「已經在等對方，別插手」擋掉，方向就永遠不修正。
+        ui.removeCallbacks(hostWaitTimeout);
+        pendingRotation = null;
+        deferredRotation = null;
         sessionStarting = false;
         ui.postDelayed(() -> {
             if (stopped || isFinishing()) return;
@@ -1931,6 +2089,11 @@ public class MirrorActivity extends Activity {
         if (bar != null) bar.setVisibility(View.VISIBLE);
 
         closeSession();
+        // 舊連線的旋轉等待已經沒有意義。留著的話 pendingRotation 不為 null，
+        // 新連線的 syncNow() 會被「已經在等對方，別插手」擋掉，方向就永遠不修正。
+        ui.removeCallbacks(hostWaitTimeout);
+        pendingRotation = null;
+        deferredRotation = null;
         sessionStarting = false;
         ui.postDelayed(() -> {
             if (stopped || isFinishing()) return;
@@ -2040,6 +2203,19 @@ public class MirrorActivity extends Activity {
         sessionStarting = true;
         showBar();
 
+        // 新連線＝新的方向起點，必須在 session 開跑「之前」清（見 OrientationSync#reset）。
+        // 不能挪到 onReady 才清：ScrcpySession.start() 是「先 onVideoSize、後 onReady」，
+        // 而 onVideoSize 才是 syncNow 的觸發點 —— 兩者都只是 post 到主執行緒，順序固定。
+        // 在 onReady 才清，等於「第一次對齊已經拿著上一輪的記錄跑完、而且被擋掉了」，
+        // 清完也沒人再送，症狀就是重連後非得手動翻一次手機。
+        if (orientationSync != null) orientationSync.reset();
+
+        // 開場前就把對方鎖到本機現在的方向。伺服器一啟動就照當下的顯示器方向編碼、
+        // 尺寸也寫進 session meta —— 晚一步（連上才送指令）就會看到「先一條橫的、
+        // 1~2 秒後才轉正」。關掉方向同步時傳 -1：尊重對方的自動旋轉。
+        final int lockRotation = (orientationSync != null && orientationSync.isEnabled())
+                ? currentClientRotation() : -1;
+
         starter = new Thread(() -> {
             ScrcpySession s = new ScrcpySession(getApplicationContext(), host, port,
                     new ScrcpySession.Listener() {
@@ -2137,7 +2313,8 @@ public class MirrorActivity extends Activity {
             // 音訊的起始狀態由 ScrcpySession 自己從 Settings 讀（見 start()），
             // 這裡不再傳 —— 兩邊各記一份遲早會不一致。
             try {
-                s.start(surface);
+                s.setRecorder(recorder);
+                s.start(surface, lockRotation);
                 if (stopped || isFinishing()) {
                     // 啟動期間使用者已經離開（例如按下返回），別把連線留下來
                     s.close();
@@ -2152,6 +2329,11 @@ public class MirrorActivity extends Activity {
                     if (h.getSurface() != null && h.getSurface().isValid()) {
                         s.attachSurface(h.getSurface());
                     }
+                    // 再對齊一次方向。上面那行之後 session 一定已經指派好 ——
+                    // onVideoSize 那次可能跑在指派之前（session 還是 null，syncNow 靜默跳過），
+                    // 而 onVideoSize 只在尺寸變化時才來，錯過就再也沒有第二次。
+                    // 重複呼叫是幂等的（見 OrientationSync#requestHost）。
+                    syncNow();
                     // 音訊是獨立 session，還在背景起（約 1~1.5 秒）——
                     // 先按目前狀態把按鈕畫出來，好了再由 onAudioState 更新
                     updateSoundButton();

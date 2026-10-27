@@ -226,10 +226,20 @@
     <string name="menu_screen_off">Turn host screen off (saves power)</string>
     <string name="menu_screen_on">Turn host screen on</string>
     <string name="menu_screenshot">Screenshot host screen</string>
+    <string name="menu_record">Record host screen</string>
+    <string name="menu_record_stop">Stop recording</string>
 
     <string name="shot_started">Taking screenshot…</string>
     <string name="shot_saved">Screenshot saved to %1$s</string>
     <string name="shot_failed">Screenshot failed: %1$s</string>
+
+    <string name="record_dot">● REC</string>
+    <string name="record_started">Recording…</string>
+    <string name="record_stopped">Video saved to %1$s</string>
+    <string name="record_failed">Recording failed: %1$s</string>
+    <string name="record_empty">Nothing recorded</string>
+    <string name="record_busy">Still finishing the last clip — try again in a second</string>
+    <string name="record_need_connection">Not connected yet — try again in a moment</string>
     <string name="msg_host_screen_off">Host screen off — mirroring continues</string>
     <string name="msg_host_screen_on">Host screen back on</string>
 

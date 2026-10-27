@@ -48,7 +48,7 @@ import io.github.muntashirakon.adb.AdbStream;
  * （對方喇叭要不要出聲）只能啟動時決定，綁在這裡就代表「切一次靜音＝畫面重連」。
  * 拆到 {@link AudioSession} 之後切換只重啟音訊那條，畫面不受影響。
  *
- * <p>每條連線開頭還有握手資料（見 {@link #start(Surface)} 的說明），
+ * <p>每條連線開頭還有握手資料（見 {@link #start(Surface, int)} 的說明），
  * 全部讀完才會進入穩定的資料流。
  */
 final class ScrcpySession implements Closeable {
@@ -91,6 +91,19 @@ final class ScrcpySession implements Closeable {
 
     /** 裝置→電腦 的 UHID 輸出（我們沒用，但遇到要能跳過，不然整條串流會錯位）。 */
     private static final int DEVICE_MSG_UHID_OUTPUT = 2;
+
+    /**
+     * 控制訊息：請對方重置影像編碼（{@code TYPE_RESET_VIDEO}，scrcpy 4.1 的 17 號）。
+     *
+     * <p>伺服器收到會呼叫 {@code CaptureControl.reset(RESET_REASON_CLIENT_RESET)} ——
+     * 效果是<b>立刻產生一個關鍵幀</b>（並重送 config 包）。scrcpy 自己用它來處理
+     * 「影片暫時停掉後要重新接上」的情況。
+     *
+     * <p>我們用它來讓<b>錄影</b>可以馬上開始：MP4 的第一個樣本必須是 IDR，
+     * 而編碼器的 GOP 是 10 秒，不主動要一個的話，按下錄影後最多要空等 10 秒
+     * （見 {@link Recorder}）。
+     */
+    private static final byte CONTROL_TYPE_RESET_VIDEO = 17;
 
     /**
      * 剪貼簿字串的長度上限（bytes）。
@@ -254,6 +267,19 @@ final class ScrcpySession implements Closeable {
     /** 是不是我們把對方的旋轉鎖住了（斷線時要負責還原）。 */
     private volatile boolean rotationOwned;
 
+    /**
+     * 錄影器（沒在錄影時是 null，或存在但 {@code isRecording()==false}）。
+     *
+     * <p>由 Activity 建立並在 {@link #start(Surface, int)} 之前掛上來 —— 影像讀取執行緒
+     * 只負責把封包轉手給它，本身不做任何封裝。見 {@link Recorder}。
+     */
+    private volatile Recorder recorder;
+
+    /** 掛上錄影器。<b>要在 {@link #start(Surface, int)} 之前呼叫</b>，否則會漏掉開頭幾個封包。 */
+    void setRecorder(Recorder r) {
+        this.recorder = r;
+    }
+
     /** 伺服器最後幾行日誌。連線失敗時拿它當錯誤訊息，比「逾時」有用得多。 */
     private final Deque<String> serverLog = new ArrayDeque<>();
 
@@ -288,7 +314,7 @@ final class ScrcpySession implements Closeable {
      *       才開始，不拖慢畫面。</li>
      * </ol>
      */
-    void start(Surface surface) throws Exception {
+    void start(Surface surface, int lockRotation) throws Exception {
         running = true;
 
         // ---- 1. 推 jar（獨立連線，用完就丟）----
@@ -297,6 +323,22 @@ final class ScrcpySession implements Closeable {
         AdbClient pusher = new AdbClient(context, host, port);
         try {
             pusher.pushFile(jar, ScrcpyServer.REMOTE_JAR);
+            // ---- 1.5 先鎖對方方位，再起伺服器 ----
+            //
+            // <p><b>為什麼一定要在「起伺服器」之前：</b>伺服器一啟動就照<b>當下</b>的
+            // 顯示器方向編碼，尺寸也直接寫進 session meta。等連上之後才送旋轉指令，
+            // 第一批畫面已經是錯的方向 —— 這就是切換畫質重連後「先出現一條橫的、
+            // 1~2 秒後才轉正」的來源（對方 close 時被還原成自由旋轉，依它自己的感測器
+            // 轉了，而我們那時還沒連上，來不及阻止）。
+            //
+            // <p>用 pusher 這條現成的連線送，省一次 TLS 握手。鎖完之後伺服器還要
+            // 啟動約 1 秒，足夠讓顯示器把旋轉真的套用下去。
+            if (lockRotation >= 0) {
+                if (lockRotation(pusher, lockRotation)) {
+                    rotationOwned = true;
+                    DiagLog.i(TAG, "開場前已鎖定對方方向 " + lockRotation);
+                }
+            }
         } finally {
             pusher.close();
         }
@@ -471,6 +513,7 @@ final class ScrcpySession implements Closeable {
                     long ptsAndFlags = readLongBE(hdr, 0);
                     int size = readIntBE(hdr, 8);
                     boolean config = (ptsAndFlags & FLAG_CONFIG) != 0;
+                    boolean key = (ptsAndFlags & FLAG_KEY_FRAME) != 0;
                     long pts = ptsAndFlags & ~(FLAG_SESSION | FLAG_CONFIG | FLAG_KEY_FRAME);
 
                     if (size < 0 || size > 8 * 1024 * 1024) {
@@ -478,6 +521,11 @@ final class ScrcpySession implements Closeable {
                     }
                     byte[] payload = new byte[size];
                     readFully(in, payload, size);
+                    // 錄影只是「轉手」：入列就回來，不在這條執行緒上碰磁碟（見 Recorder）
+                    Recorder rec = recorder;
+                    if (rec != null) {
+                        rec.onPacket(payload, pts, config, key, videoWidth, videoHeight);
+                    }
                     decoder.submit(VideoDecoder.Packet.frame(payload, pts, config));
                 }
             } catch (Exception e) {
@@ -568,6 +616,9 @@ final class ScrcpySession implements Closeable {
         // 共用主 session 的 ADB 連線：每開一條新連線，對方的無線偵錯就會再跳一次
         // 「無線偵錯已連線」通知，切一次聲音跳一次很煩。
         AudioSession s = new AudioSession(client, want);
+        // 錄影要同一份 PCM：在 start() 之前掛上去（讀取執行緒是 start() 裡起來的）。
+        // 沒在錄影時 onPcm 直接 return，成本等於一次 boolean 判斷。
+        s.setPcmTap(recorder);
         boolean active = false;
         try {
             s.start();
@@ -580,6 +631,7 @@ final class ScrcpySession implements Closeable {
                     s.close();
                     audioApplied = null;
                     DiagLog.i(TAG, "音訊 session 建立期間已被關閉，直接收掉");
+                    if (recorder != null) recorder.setAudioOn(false);
                     if (listener != null) listener.onAudioState(false, true);
                     return;
                 }
@@ -597,6 +649,8 @@ final class ScrcpySession implements Closeable {
             // 失敗就清掉，下次切換會重試
             audioApplied = null;
         }
+        // 錄影要據此決定「這一段要不要帶音軌」。沒音訊時只錄影像（跟 scrcpy --record 一樣）。
+        if (recorder != null) recorder.setAudioOn(active);
         // 收尾：把被路由切換打斷的播放接回去（無條件）
         resumeHostPlayback();
 
@@ -940,12 +994,25 @@ final class ScrcpySession implements Closeable {
     boolean setHostRotation(int rotation) {
         AdbClient c = client;
         if (c == null) return false;
+        if (!lockRotation(c, rotation)) return false;
+        rotationOwned = true;
+        DiagLog.i(TAG, "已要求對方鎖定方向 " + rotation);
+        return true;
+    }
+
+    /**
+     * 送 {@code wm user-rotation lock N}。<b>會阻塞</b>，要在背景執行緒呼叫。
+     *
+     * <p>抽成靜態方法，是因為它有兩個呼叫點，用的連線不一樣：開場前用推 jar 那條
+     * （{@link #start(Surface, int)}），連線中用它自己的 {@link #client}
+     * （{@link #setHostRotation(int)}）。指令本身與逾時必須完全一致，
+     * 否則會出現「開場鎖得住、後來鎖不住」這種鬼故事。
+     */
+    private static boolean lockRotation(AdbClient c, int rotation) {
         try {
             // 一定要帶結束記號：libadb 的 read() 在對端 CLSE 之後可能永遠不返回
             c.shell("wm user-rotation lock " + rotation + "; echo @@OMNIADB:ROT",
                     "@@OMNIADB:ROT", 3_000);
-            rotationOwned = true;
-            DiagLog.i(TAG, "已要求對方鎖定方向 " + rotation);
             return true;
         } catch (Exception e) {
             DiagLog.w(TAG, "設定對方方向失敗（" + rotation + "）", e);
@@ -977,6 +1044,16 @@ final class ScrcpySession implements Closeable {
     /** 展開通知欄。 */
     void expandNotificationPanel() {
         write(new byte[]{5});       // TYPE_EXPAND_NOTIFICATION_PANEL
+    }
+
+    /**
+     * 請對方立刻重吐一個關鍵幀（見 {@link #CONTROL_TYPE_RESET_VIDEO}）。
+     *
+     * <p>非阻塞：只是把 1 個 byte 丟進控制佇列。連線還沒好時靜默失敗 ——
+     * 錄影那邊本來就會一直等到關鍵幀為止，少這一次重置頂多慢一點。
+     */
+    void requestVideoReset() {
+        write(new byte[]{CONTROL_TYPE_RESET_VIDEO});
     }
 
     /**

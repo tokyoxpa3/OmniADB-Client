@@ -226,10 +226,20 @@
     <string name="menu_screen_off">關閉對方螢幕（省電）</string>
     <string name="menu_screen_on">開啟對方螢幕</string>
     <string name="menu_screenshot">截圖（存到本機相簿）</string>
+    <string name="menu_record">錄影（存到本機相簿）</string>
+    <string name="menu_record_stop">停止錄影</string>
 
     <string name="shot_started">正在截圖…</string>
     <string name="shot_saved">已存到 %1$s</string>
     <string name="shot_failed">截圖失敗：%1$s</string>
+
+    <string name="record_dot">● 錄影中</string>
+    <string name="record_started">開始錄影…</string>
+    <string name="record_stopped">已存到 %1$s</string>
+    <string name="record_failed">錄影失敗：%1$s</string>
+    <string name="record_empty">沒有錄到任何畫面</string>
+    <string name="record_busy">上一段還在收檔，稍等一下再按</string>
+    <string name="record_need_connection">還沒連上，稍等一下再錄</string>
     <string name="msg_host_screen_off">對方螢幕已關閉，鏡像照常</string>
     <string name="msg_host_screen_on">對方螢幕已開啟</string>
 

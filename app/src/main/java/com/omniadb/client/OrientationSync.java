@@ -134,6 +134,33 @@ final class OrientationSync {
         return enabled;
     }
 
+    /**
+     * 重新連線時清掉上一輪的方向狀態。
+     *
+     * <p><b>不清會壞在哪：</b>{@link #wantRotation} 與 {@link #requestedRotation}
+     * 是跨連線保留的實例欄位，而 {@link #requestHost(int)} 開頭就是
+     * 「目標跟上次一樣就 return」。切換畫質重連時，{@code close()} 會把對方的
+     * 自動旋轉還原，對方於是回到感測器判斷 —— 如果它當時實體是橫放就自己轉橫了。
+     * 但我們這一側記得的還是舊方位，{@code requestHost()} 一看「跟上次一樣」就
+     * 直接返回，指令永遠送不出去，畫面就卡在橫的，<b>非得手動翻一次手機</b>
+     * 讓感測器報出新方位才會恢復。
+     *
+     * <p><b>呼叫時機很重要：</b>要在新連線<b>開跑之前</b>清（{@code MirrorActivity#startSession}
+     * 開頭），不能等到 {@code onReady}。{@code ScrcpySession.start()} 是「先回報
+     * {@code onVideoSize}、後回報 {@code onReady}」，而 {@code onVideoSize} 才是
+     * {@code syncNow()} 的觸發點；兩者都只是 post 到主執行緒，順序固定。在 {@code onReady}
+     * 才清，等於第一次對齊已經拿著舊記錄被擋掉、清完也沒人再送 —— 這個 bug 修一半就是這樣。
+     *
+     * <p>{@link #enabled} 是使用者的設定，不在這裡重置。
+     */
+    void reset() {
+        wantRotation = -1;
+        requestedRotation = -1;
+        pendingValid = false;
+        waiting = false;
+        ui.removeCallbacksAndMessages(null);
+    }
+
     /** 切換「跟隨本機方向」。回傳切換後是否啟用。 */
     boolean toggle() {
         enabled = !enabled;

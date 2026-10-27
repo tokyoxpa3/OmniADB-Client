@@ -45,6 +45,19 @@ final class AudioSession implements Closeable {
     /** 音訊封包大小上限。實測 raw 是 4096 bytes（≈21 ms）。 */
     private static final int MAX_AUDIO_PACKET = 64 * 1024;
 
+    /**
+     * 裸 PCM 的旁路（給錄影用）。
+     *
+     * <p>在<b>音訊讀取執行緒</b>上呼叫，一包約 21 ms。<b>不可以阻塞</b> ——
+     * 擋住這裡等於擋住播放（同一個執行緒還要寫 {@link AudioPlayer}）。
+     * 實作見 {@link Recorder#onPcm}：它只是複製一份丟進佇列。
+     *
+     * @param ptsUs 這一包的時間戳（微秒，<b>對方裝置的開機時間</b>，跟影像同一套時鐘）
+     */
+    interface PcmTap {
+        void onPcm(byte[] data, int len, long ptsUs);
+    }
+
     /** 等音訊伺服器把 socket 開起來的上限。純音訊不用等編碼器，比影像快。 */
     private static final long SERVER_START_TIMEOUT_MS = 8_000;
 
@@ -89,6 +102,9 @@ final class AudioSession implements Closeable {
     /** 伺服器最後幾行日誌，失敗時拿來當錯誤訊息。 */
     private final Deque<String> serverLog = new ArrayDeque<>();
 
+    /** 裸 PCM 的旁路（錄影用）；沒在錄影時是 null。見 {@link PcmTap}。 */
+    private volatile PcmTap pcmTap;
+
     AudioSession(AdbClient sharedClient, boolean hostAudible) {
         this.sharedClient = sharedClient;
         this.hostAudible = hostAudible;
@@ -104,6 +120,16 @@ final class AudioSession implements Closeable {
 
     String deviceName() {
         return deviceName;
+    }
+
+    /**
+     * 掛上裸 PCM 的旁路（錄影用）。
+     *
+     * <p><b>要在 {@link #start()} 之前呼叫</b>：讀取執行緒是 start() 裡起來的，
+     * 之後才掛會漏掉開頭幾包。
+     */
+    void setPcmTap(PcmTap tap) {
+        this.pcmTap = tap;
     }
 
     // ================================================================== 啟動
@@ -220,6 +246,18 @@ final class AudioSession implements Closeable {
                     // config 包（旗標 bit63）是給解碼器用的初始資料。raw 沒有，
                     // 但協定上可能出現，跳過即可 —— 當成 PCM 播會是雜音。
                     if ((ptsFlags & (1L << 63)) == 0) {
+                        // 先給錄影（它只複製、不阻塞），再寫喇叭。
+                        // 順序反過來的話，AudioTrack 的背壓會讓錄影的音訊晚一包。
+                        PcmTap tap = pcmTap;
+                        if (tap != null) {
+                            long ptsUs = ptsFlags & ~(1L << 63);
+                            try {
+                                tap.onPcm(buf, size, ptsUs);
+                            } catch (Exception e) {
+                                // 錄影壞了不該把播放一起帶走
+                                DiagLog.w(TAG, "音訊旁路失敗", e);
+                            }
+                        }
                         AudioPlayer p = player;
                         if (p != null) p.write(buf, size);
                         packets++;
@@ -287,6 +325,7 @@ final class AudioSession implements Closeable {
     public void close() {
         running = false;
         active = false;
+        pcmTap = null;
 
         // 先關喇叭：AudioTrack 一釋放，阻塞在 write() 的音訊執行緒就會退出
         AudioPlayer p = player;

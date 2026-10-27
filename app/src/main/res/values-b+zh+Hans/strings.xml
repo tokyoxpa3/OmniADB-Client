@@ -226,10 +226,20 @@
     <string name="menu_screen_off">关闭对方屏幕（省电）</string>
     <string name="menu_screen_on">开启对方屏幕</string>
     <string name="menu_screenshot">截图（存到本机相册）</string>
+    <string name="menu_record">录屏（存到本机相册）</string>
+    <string name="menu_record_stop">停止录屏</string>
 
     <string name="shot_started">正在截图…</string>
     <string name="shot_saved">已存到 %1$s</string>
     <string name="shot_failed">截图失败：%1$s</string>
+
+    <string name="record_dot">● 录屏中</string>
+    <string name="record_started">开始录屏…</string>
+    <string name="record_stopped">已存到 %1$s</string>
+    <string name="record_failed">录屏失败：%1$s</string>
+    <string name="record_empty">没有录到任何画面</string>
+    <string name="record_busy">上一段还在存档，稍等一下再按</string>
+    <string name="record_need_connection">还没连上，稍等一下再录</string>
     <string name="msg_host_screen_off">对方屏幕已关闭，镜像照常</string>
     <string name="msg_host_screen_on">对方屏幕已开启</string>
 
