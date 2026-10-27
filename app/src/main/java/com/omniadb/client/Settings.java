@@ -111,6 +111,11 @@ final class Settings {
      *
      * <p>預設 true：鏡像的重點就是「看著對方」，對方自己睡著只會得到一片黑，
      * 還得伸手按電源鍵。代價是對方耗電 —— 不想要的人可以在選單裡關掉。
+     *
+     * <p><b>勾了 {@link #hostScreenOff} 時這個值就不算數</b>：面板已經被關掉，
+     * keep-screen-on 沒有任何看得見的效果，但能擋住 doze 讓編碼器停擺，
+     * 所以啟動時一律帶 true（見 {@link ScrcpySession}）。選單在那種情況下
+     * 也會把這一項灰掉，避免使用者以為自己在調一個有用的開關。
      */
     static boolean stayAwake(Context c) {
         return prefs(c).getBoolean(KEY_STAY_AWAKE, true);

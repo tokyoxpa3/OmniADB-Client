@@ -219,6 +219,7 @@
     <string name="msg_clipboard_empty">Nothing to paste — this phone\'s clipboard is empty</string>
     <string name="menu_quality">Video quality…</string>
     <string name="menu_stay_awake">Keep host screen on</string>
+    <string name="menu_stay_awake_superseded">Keep screen on (N/A)</string>
     <string name="menu_audio">Audio…</string>
     <string name="menu_reconnect">Reconnect</string>
     <string name="menu_screen_off">Turn off host screen (saves power)</string>

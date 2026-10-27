@@ -346,7 +346,12 @@ final class ScrcpySession implements Closeable {
 
         // ---- 2. 起伺服器 ----
         client = new AdbClient(context, host, port);
-        String cmd = ScrcpyServer.commandLine(Settings.video(context), Settings.stayAwake(context));
+        // 勾了「關閉螢幕省電」就一律帶 stay_awake，不管使用者的常亮偏好是什麼：
+        // 面板已經被我們關掉，keep-screen-on 不會讓它變亮，但能避免裝置進入 doze
+        // 讓編碼器停擺 —— 「省電 + 常亮關閉」這個組合沒有實測過，寧可保守。
+        // 選單那邊也把這個勾灰掉了，所以不會出現「使用者想要 A、我們卻送 B」。
+        boolean stayAwake = Settings.stayAwake(context) || Settings.hostScreenOff(context);
+        String cmd = ScrcpyServer.commandLine(Settings.video(context), stayAwake);
         shellStream = client.openStream("shell:" + cmd);
         startLogDrain();
         DiagLog.i(TAG, "scrcpy-server 已啟動：" + cmd);
@@ -595,7 +600,9 @@ final class ScrcpySession implements Closeable {
         // 從 REMOTE_SUBMIX 搬回 SPEAKER 這一步，系統會發 ACTION_AUDIO_BECOMING_NOISY
         // —— ExoPlayer 系的 App（YouTube、B 站……）收到就暫停，而且不會自己恢復。
         // 實測：YouTube 在 dup=false 時是 PLAYING，切成 dup=true 後變 PAUSED 且卡住。
-        // 所以重建完一律補送一次 play（無條件，不先探測）。
+        // 所以<b>切換</b>完一律補送一次 play（不先探測，探測要多花 200~400 ms）。
+        // 但連線後的第一次啟動不補 —— 那時沒有舊 session 可關，也就沒有這個搬移
+        // （見下面收尾那段的說明）。
 
         audio = null;
         if (old != null) {
@@ -651,8 +658,14 @@ final class ScrcpySession implements Closeable {
         }
         // 錄影要據此決定「這一段要不要帶音軌」。沒音訊時只錄影像（跟 scrcpy --record 一樣）。
         if (recorder != null) recorder.setAudioOn(active);
-        // 收尾：把被路由切換打斷的播放接回去（無條件）
-        resumeHostPlayback();
+        // 收尾：把被路由切換打斷的播放接回去。
+        // ★ <b>只有「切換」才補，連線後的第一次啟動不補。</b>第一次啟動沒有 close()，
+        // 也就不會發生 REMOTE_SUBMIX → SPEAKER 那一步，沒有東西要救；
+        // 送了反而會把使用者<b>刻意暫停</b>的播放器叫起來
+        // （實測：一連上，暫停中的 YouTube 就自己開始播）。
+        if (old != null) {
+            resumeHostPlayback();
+        }
 
         if (listener != null) listener.onAudioState(active, want);
     }
@@ -661,21 +674,21 @@ final class ScrcpySession implements Closeable {
     private static final long RESUME_PROBE_DELAY_MS = 400;
 
     /**
-     * 補送一次播放鍵。
+     * 補送一次播放鍵，把被路由切換打斷的播放接回去。
      *
-     * <p><b>為什麼要無條件送：</b>切換「對方有聲／靜音」一定要重開音訊 session
-     * （{@code audio_dup} 只能在啟動時決定），而重開會把對方的音訊路由
+     * <p><b>為什麼切換時不先探測：</b>切換「對方有聲／靜音」一定要重開音訊 session
+     * （{@code audio_dup} 只能在啟動時決定），而關掉舊 session 會把對方的音訊路由
      * 從 REMOTE_SUBMIX 搬回 SPEAKER。系統把這視為「輸出裝置變了」，發出
      * {@code ACTION_AUDIO_BECOMING_NOISY}（耳機拔掉時的那個廣播）；ExoPlayer 系的
      * App 依規範收到就 {@code pause()}，而且<b>不會自己恢復</b> —— 使用者看到的就是
-     * 「一開聲音，影片就停了」。
+     * 「一開聲音，影片就停了」。探測要先跑兩次 {@code dumpsys media_session}
+     * （每次切換多花 200~400 ms），而且探測與補送之間還有時間差，所以直接送：
+     * {@code dispatch play} 只對「有 media session 的 App」生效，沒有人在播時是
+     * no-op，不會亂開 App。
      *
-     * <p>原本的做法是「先探測有沒有人在播、只有被打斷才補」，但那要多跑兩次
-     * {@code dumpsys media_session}（每次切換多花 200~400 ms），而且探測與補送之間
-     * 還有時間差。現在直接送：{@code dispatch play} 只對「有 media session 的 App」
-     * 生效，沒有人在播時是 no-op，不會亂開 App。
-     *
-     * <p>代價：如果使用者是<b>刻意暫停</b>之後才切換聲音，會被這一下叫回播放。
+     * <p><b>只給「切換」用，連線後不要呼叫</b>（見 {@code applyAudioMode} 的收尾）：
+     * 連線時沒有舊 session 可關，沒有東西要救，送了只會把使用者刻意暫停的播放器
+     * 叫起來。代價仍然存在 —— 使用者刻意暫停之後才切換聲音，會被這一下叫回播放。
      */
     private void resumeHostPlayback() {
         AdbClient c = client;
@@ -689,7 +702,7 @@ final class ScrcpySession implements Closeable {
         try {
             c.shell("cmd media_session dispatch play; echo @@OMNIADB:RESUME",
                     "@@OMNIADB:RESUME", 2_500);
-            DiagLog.i(TAG, "已補送 play（無條件）");
+            DiagLog.i(TAG, "已補送 play（路由切換後）");
         } catch (Exception e) {
             DiagLog.w(TAG, "補送 play 失敗", e);
         }

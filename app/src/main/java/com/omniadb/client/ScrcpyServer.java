@@ -173,7 +173,9 @@ final class ScrcpyServer {
      *       下一次連線就找不到 jar。</li>
      *   <li>{@code stay_awake=true} —— 讓<b>對方</b>螢幕在鏡像期間不睡
      *       （伺服器會加 {@code FLAG_KEEP_SCREEN_ON}）。沒有它的話，對方螢幕逾時
-     *       就變一片黑，只能伸手按電源鍵。使用者可以在選單裡關掉。</li>
+     *       就變一片黑，只能伸手按電源鍵。使用者可以在選單裡關掉 ——
+     *       但勾了「關閉螢幕省電」時會強制帶 true（見
+     *       {@link ScrcpySession#start()} 的說明），因為那時面板本來就不亮。</li>
      * </ul>
      */
     static String commandLine(Settings.Video video, boolean stayAwake) {
