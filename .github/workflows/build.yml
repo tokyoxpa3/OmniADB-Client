@@ -13,23 +13,29 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      # 跟 OmniADB-Host 用同一套做法：runner image 本身已經帶 Android SDK，
+      # 只要補上這個專案 compileSdk 對應的 platform 與 build-tools。
+      # （`android-actions/setup-android` 在 2026-07 那次改版後會把 SDK 目錄搬走，
+      #   Host 專案因此吃過一次紅燈，這裡直接沿用已經跑通的做法。）
+      - name: Install SDK packages
+        run: |
+          SDKMGR="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | head -1)"
+          yes | "$SDKMGR" --licenses > /dev/null || true
+          "$SDKMGR" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: OmniADB-Client-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

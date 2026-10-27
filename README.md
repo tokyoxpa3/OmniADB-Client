@@ -3,6 +3,14 @@
 > **用手機控制另一支手機。** 掃描 → 配對 → 安裝 Host → 連線，全程不需要電腦。
 
 <p align="center">
+  <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
+  <img src="https://img.shields.io/badge/mirror-Android%2013%2B%20for%20audio-blue" alt="Mirror audio">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/version-0.4.7-informational" alt="Version">
+  <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
+</p>
+
+<p align="center">
   <img src="shots/mirror1.png" width="760" alt="A 機全螢幕顯示 B 機桌面，上方是鏡像工具列">
 </p>
 
@@ -43,7 +51,7 @@ OmniADB-Client：掃描 → 配對 → 安裝 Host → 連線     ←  手機版
 | `video` 螢幕鏡像 + 觸控 | 點「鏡像」全螢幕鏡像 + 多點觸控 + 按鍵列 | ✅ 已實作 |
 | `push` / `pull` 傳檔 | 點「檔案」：兩邊列目錄、多選互傳 | ✅ 已實作 |
 | —（電腦版沒有） | 對方畫面截圖存本機 | ✅ 已實作 |
-| `record` 錄影 | 尚未實作 | ⏳ 待做 |
+| `record` 錄影 | 「設置 → 錄影」，H.264 直封裝 MP4（可帶 AAC 音軌） | ✅ 已實作 |
 
 ---
 
