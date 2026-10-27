@@ -76,12 +76,15 @@
             把 cacheDir／filesDir 底下指定的檔案暫時借給收件 App 讀，
             權限只跟著那一次 Intent（FLAG_GRANT_READ_URI_PERMISSION），不是永久開放。
 
-            authorities 一定要跟程式裡的字串一致（MainActivity.LOG_AUTHORITY），
-            改一個沒改另一個會在按下「匯出」的當下才爆。
+            authorities 一定要跟程式裡算出來的字串一致（MainActivity.fileAuthority() /
+            FilesActivity.fileAuthority()，都是 getPackageName() + ".fileprovider"）。
+            這裡刻意用 ${applicationId} 佔位而不是寫死 —— 寫死的話 -PdevSuffix 建出來的
+            .dev 包會跟正式包用同一個 authority，兩者只能留一個
+            （INSTALL_FAILED_CONFLICTING_PROVIDER）。
         -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.omniadb.client.fileprovider"
+            android:authorities="${applicationId}.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

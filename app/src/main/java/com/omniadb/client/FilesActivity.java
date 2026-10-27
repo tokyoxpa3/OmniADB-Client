@@ -102,8 +102,14 @@ public class FilesActivity extends Activity {
      */
     private static final String SHELL_END = "@@OMNIADB:END";
 
-    /** 跟 manifest 裡的 {@code android:authorities} 是同一個字串，改一個沒改另一個會在按下去時才爆。 */
-    private static final String FILE_AUTHORITY = "com.omniadb.client.fileprovider";
+    /**
+     * 跟 manifest 裡的 {@code android:authorities} 是同一個東西：兩邊都用
+     * {@code <applicationId>.fileprovider}（manifest 走 {@code ${applicationId}} 佔位），
+     * 所以 {@code -PdevSuffix} 的 {@code .dev} 包不會跟正式包撞 provider。
+     */
+    private String fileAuthority() {
+        return getPackageName() + ".fileprovider";
+    }
 
     /**
      * 超過這個大小才問「要先下載」。小檔（縮圖、txt）直接開，
@@ -1804,7 +1810,7 @@ public class FilesActivity extends Activity {
     }
 
     private void launchViewer(File f, String mime) {
-        Uri uri = FileProvider.getUriForFile(this, FILE_AUTHORITY, f);
+        Uri uri = FileProvider.getUriForFile(this, fileAuthority(), f);
         Intent i = new Intent(Intent.ACTION_VIEW)
                 .setDataAndType(uri, mime)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);

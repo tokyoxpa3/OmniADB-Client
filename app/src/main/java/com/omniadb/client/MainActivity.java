@@ -72,10 +72,14 @@ public class MainActivity extends Activity {
     /**
      * 匯出日誌用的 provider authority。
      *
-     * <p>必須跟 {@code AndroidManifest.xml} 裡 {@code <provider>} 的 authorities 一字不差
-     * —— 這種字串重複兩份是典型的「改一個忘一個」，改了這裡記得改那裡。
+     * <p>必須跟 {@code AndroidManifest.xml} 裡 {@code <provider>} 的 authorities 一致
+     * —— 兩邊都是 {@code <applicationId>.fileprovider}，manifest 用
+     * {@code ${applicationId}} 佔位、這裡用 {@link #fileAuthority()} 算，
+     * 這樣 {@code -PdevSuffix} 建出來的 {@code .dev} 包才不會跟正式包撞 provider。
      */
-    private static final String LOG_AUTHORITY = "com.omniadb.client.fileprovider";
+    private String fileAuthority() {
+        return getPackageName() + ".fileprovider";
+    }
 
     /**
      * 單次探測的硬上限（含「換 5555 再試一次」那一輪）。
@@ -1526,7 +1530,7 @@ public class MainActivity extends Activity {
 
         Uri uri;
         try {
-            uri = FileProvider.getUriForFile(this, LOG_AUTHORITY, snapshot);
+            uri = FileProvider.getUriForFile(this, fileAuthority(), snapshot);
         } catch (Exception e) {
             DiagLog.e(TAG, "取得日誌 URI 失敗", e);
             copyLogs();
