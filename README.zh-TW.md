@@ -166,7 +166,7 @@ A 機開 App → 清單直接顯示 B（含電量、溫度、解析度）→ 點
 
 ```bash
 ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk（debug 金鑰簽章，可直接 sideload）
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk（release 金鑰簽章，可直接 sideload）
 ```
 
 需要 **JDK 17** 與 **Android SDK**（`compileSdk 35`）。
@@ -185,15 +185,17 @@ sdk.dir=/path/to/Android/Sdk
 
 **關於 release 簽章**
 
-`build.gradle.kts` 的 release 建置刻意沿用 debug 金鑰：
+正式發佈的 APK 用一把固定的 release 金鑰簽章，金鑰檔放在 repo 外，路徑與密碼由根目錄的
+`keystore.properties` 指定（該檔已在 `.gitignore` 內）。這個檔案不存在時（例如別人 clone
+下來），`assembleRelease` 會退回你本機的 debug 金鑰，保證建得起來，但那種產物只適合自己測。
 
-```kotlin
-signingConfig = signingConfigs.getByName("debug")
-```
+由此衍生兩件事：
 
-這樣任何人都能 `assembleRelease` 出一顆可直接 sideload 的 APK，不需要你分享簽章檔。
-代價是它**不能上架 Google Play**（會被拒），而且憑證指紋顯示為 `Android Debug`。
-要正式發布商店版，請自備 keystore 並改成讀 `keystore.properties`（該檔已在 `.gitignore` 內）。
+- **自己建置的 APK 蓋不過官方版**（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`，小米會顯示「應用程式
+  套件與現有套件衝突」），因為簽章不同。要裝就得先卸載官方版 —— 那會一併清掉 App 裡存的
+  裝置清單與 ADB 金鑰。
+- **每一台機器、每一個 CI 都必須用同一把金鑰**，否則發出去的版本無法覆蓋升級。這也是這裡
+  不再用 debug 金鑰（每個開發機一份）的原因。
 
 ---
 

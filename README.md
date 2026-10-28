@@ -173,7 +173,7 @@ Some of these are Android's hard limits, not missing features:
 
 ```bash
 ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
-./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk (debug-key signed, sideload-ready)
+./gradlew assembleRelease   # app/build/outputs/apk/release/app-release.apk (release-key signed, sideload-ready)
 ```
 
 Requires **JDK 17** and the **Android SDK** (`compileSdk 35`).
@@ -193,16 +193,18 @@ Android Studio creates it for you; command-line builds need it written by hand.
 
 **About the release signature**
 
-The release build deliberately reuses the debug key:
+Official builds are signed with a fixed release key that lives outside the repository; its path
+and passwords are read from `keystore.properties` (already in `.gitignore`). If that file is
+missing — a fresh clone, for instance — `assembleRelease` falls back to your local debug key so
+the build still works, but such an APK is for your own testing only.
 
-```kotlin
-signingConfig = signingConfigs.getByName("debug")
-```
+Two things follow from this:
 
-That way anyone can `assembleRelease` a sideload-ready APK without you sharing a keystore.
-The trade-off is that it **cannot go on Google Play** (it will be rejected) and the
-certificate reads `Android Debug`. For a store release, bring your own keystore and read it
-from `keystore.properties` (already in `.gitignore`).
+- An APK you build yourself **will not install over the official one** (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`,
+  or "package conflicts with an existing package" on Xiaomi) — the signatures differ. Uninstall
+  the official build first, which also wipes the app's stored device list and ADB key.
+- Every machine and every CI job must use the *same* key, otherwise releases can't be upgraded
+  in place. That is exactly why the debug key (one per developer machine) is no longer used here.
 
 ---
 
