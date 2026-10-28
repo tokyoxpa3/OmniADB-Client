@@ -792,7 +792,13 @@ public class MainActivity extends Activity {
                     // 找到的是「現在」的埠，比記住的舊值可信
                     r.port = f.port;
                     r.info = null;
-                    probe(r);
+                    // ★ 純掃描生出來的卡片（discovered=true，從沒連上過）不重探。
+                    // 為什麼：同一台手機常常回兩筆 `_adb-tls-connect`（舊的 adbd 記錄
+                    // 還沒消失時就是這樣），第二筆會被這裡當成「埠變了」而 probe()，
+                    // 於是使用者只是按了「掃描」，對方手機上就跳出「允許 USB 偵錯嗎？」——
+                    // 正好違背下面「掃到只列出來，等使用者明確按請求授權才連」的設計。
+                    // 已經連上過的卡片（discovered=false）才順手重探，換 IP／換埠時仍會自動更新。
+                    if (!r.discovered) probe(r);
                 }
                 return;
             }
