@@ -171,11 +171,16 @@ final class ScrcpyServer {
      *       {@code ClassNotFoundException} → {@code app_process} 直接 SIGABRT。
      *       <b>音訊 session 也一定要關</b>：它比影像 session 晚結束，一旦它把 jar 刪了，
      *       下一次連線就找不到 jar。</li>
-     *   <li>{@code stay_awake=true} —— 讓<b>對方</b>螢幕在鏡像期間不睡
-     *       （伺服器會加 {@code FLAG_KEEP_SCREEN_ON}）。沒有它的話，對方螢幕逾時
-     *       就變一片黑，只能伸手按電源鍵。使用者可以在選單裡關掉 ——
+     *   <li>{@code keep_active=true} —— 讓<b>對方</b>螢幕在鏡像期間不睡。
+     *       伺服器每 4 秒呼叫一次 {@code PowerManager.userActivity()} 重置逾時計時器，
+     *       只在連線期間有效、<b>不改任何系統設定</b>，斷線就停。沒有它的話，
+     *       對方螢幕逾時就變一片黑，只能伸手按電源鍵。使用者可以在選單裡關掉 ——
      *       但勾了「關閉螢幕省電」時會強制帶 true（見
-     *       {@link ScrcpySession#start()} 的說明），因為那時面板本來就不亮。</li>
+     *       {@link ScrcpySession#start()} 的說明），因為那時面板本來就不亮。
+     *       <p><b>不要改用 {@code stay_awake}</b>：那個選項的實作整段在 scrcpy 的
+     *       {@code CleanUp} 裡，而我們必須帶 {@code cleanup=false}（見下一項），
+     *       CleanUp 根本不會啟動。實測連線後 {@code stay_on_while_plugged_in}
+     *       完全不變，等於無效參數 —— 還會讓人誤以為「連過就恆亮」是它造成的。</li>
      * </ul>
      */
     static String commandLine(Settings.Video video, boolean stayAwake) {
@@ -188,7 +193,7 @@ final class ScrcpyServer {
                 + " tunnel_forward=true"
                 + " audio=false"
                 + " control=true"
-                + " stay_awake=" + stayAwake
+                + " keep_active=" + stayAwake
                 + " clipboard_autosync=false"
                 + " cleanup=false";
     }

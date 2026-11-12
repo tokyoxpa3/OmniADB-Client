@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/mirror%20audio-Host%20Android%2013%2B-blue" alt="Mirror audio (host side)">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-0.5.1-informational" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.5.2-informational" alt="Version">
   <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
@@ -21,7 +21,7 @@
 | 專案 | 角色 | 平台 | 狀態 |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | 被控端 —— 釘住 ADB 埠、重開機自己爬回來 | Android | ✅ 已發布 |
-| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.1** |
+| **`OmniADB-Client`** | **控制端 —— A 機控 B 機** | **Android** | **✅ 0.5.2** |
 | `OmniADB`（Python） | 電腦端控制台 / 多機監控牆 | Win / mac / Linux | ⏸ 擱置 |
 
 ## 要解決的問題
@@ -110,7 +110,15 @@ A 機開 App → 清單直接顯示 B（含電量、溫度、解析度）→ 點
 ### 鏡像畫面
 
 頂端一條會自動收起的工具列，**只有七顆**：返回 / 主頁 / 多工 / 有聲·靜音 / 鍵盤 / 設置 / 離開。
-5 秒沒動就收起來，點右上角的 `≡` 再叫回來。系統返回鍵刻意不接管 —— 那是離開鏡像最直覺的方式。
+5 秒沒動就收起來，點右上角的 `≡` 再叫回來。本機的狀態列與導覽列會隱藏（沉浸式），
+整個畫面留給對方手機。
+
+**唯一的離開入口是工具列那顆「離開」。** 本機返回鍵與手勢返回只會把工具列叫回來，
+不會離開鏡像，BACK 也不會轉發給對方（要按對方的返回鍵請用工具列上那顆）。
+子母畫面也拿掉了 —— 按 Home 是真的斷開連線，不會留一個小窗繼續播。
+
+> 從上緣下拉狀態列、從下緣滑出導覽列是系統保留的手勢，一般 App 無法完全禁掉；
+> 做法是平常完全隱藏，被滑出來時由系統短暫顯示再自動收回。
 
 **「設置」選單**分兩段（上面是對對方動手，下面是本機設定）：
 
@@ -154,7 +162,7 @@ A 機開 App → 清單直接顯示 B（含電量、溫度、解析度）→ 點
 
 ## 已知問題
 
-- **前景服務**：檔案傳輸中切到別的 App 會斷線（`onStop` 關連線），長傳輸需要它撐著；鏡像目前只靠子母畫面
+- **前景服務**：檔案傳輸中切到別的 App 會斷線（`onStop` 關連線），長傳輸需要它撐著；鏡像離開時也直接斷線（0.5.2 起移除子母畫面）
 - 剪貼簿：`ClipData` 的圖片 / 檔案還沒處理
 - 小米安裝確認框被 10 秒倒數搶先時，目前只會在對話框裡解釋原因，還沒做到「重試一次」
 - 檔案總管還缺：拖曳搬移、影片縮圖、覆蓋前預覽兩邊的大小／時間

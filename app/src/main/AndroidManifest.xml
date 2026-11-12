@@ -41,8 +41,8 @@
             鏡像連線會跟著斷（Surface 被銷毀 → 解碼器沒地方畫），
             使用者只會看到「轉一下螢幕就斷線」。
 
-            supportsPictureInPicture：按 Home 時縮成小窗繼續看（見 onUserLeaveHint）。
-            沒有它，「邊看邊用其他 App」就得整條連線重來。
+            刻意<b>不</b>支援子母畫面：鏡像的唯一離開入口是工具列那顆「離開」，
+            按 Home 離開就真的斷開，不留小窗繼續看。
 
             刻意**不**宣告 screenOrientation：畫面方向由 MirrorActivity 用
             setRequestedOrientation() 自己控制（要等對方轉好才轉，見那裡的說明）。
@@ -52,7 +52,6 @@
             android:exported="false"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
-            android:supportsPictureInPicture="true"
             android:launchMode="singleTask" />
 
         <!--

@@ -2,13 +2,11 @@ package com.omniadb.client;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PictureInPictureParams;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentValues;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Build;
@@ -19,7 +17,6 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.text.InputType;
-import android.util.Rational;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.DisplayCutout;
@@ -32,6 +29,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.EditorInfo;
@@ -70,8 +69,10 @@ import java.util.Locale;
  * 的都收進「設置」選單（見 {@link #showMoreMenu(View)}），否則每顆按鈕都被擠成
  * 90px、字折成兩行，反而更難按。
  *
- * <p>刻意<b>不接管系統返回鍵</b>：那是使用者離開鏡像最直覺的方式。
- * 要按對方的返回鍵，用工具列上那顆「返回」。
+ * <p>鏡像時<b>接管本機返回鍵</b>：按了只會把工具列叫回來，不會離開鏡像。
+ * 唯一的離開入口是工具列那顆「離開」。要按對方的返回鍵，用工具列上那顆「返回」。
+ * 本機導覽列／狀態列用沉浸式隱藏（見 {@link #goFullscreen()}）；Home 手勢是
+ * Android 系統保留的，一般 App 攔不到，Home 仍會離開，但不會進子母畫面、也不留連線。
  */
 public class MirrorActivity extends Activity {
 
@@ -216,6 +217,14 @@ public class MirrorActivity extends Activity {
         });
         setContentView(buildUi());
         goFullscreen();
+        // 系統列一旦被滑出來，1.5 秒後再藏回去（短暫出現是系統手勢，攔不住，
+        // 只能縮短它停留的時間）。
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(visibility -> {
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                ui.removeCallbacks(rehideSystemBars);
+                ui.postDelayed(rehideSystemBars, 1500);
+            }
+        });
 
         // 畫面方向從現在起由我們自己控制（不再跟隨系統）。理由見 onIntent()。
         setRequestedOrientation(isLandscapeNow()
@@ -830,58 +839,14 @@ public class MirrorActivity extends Activity {
             updateKeyboardButton();
         }
 
-        // ★ 例外：子母畫面。那時 Activity 仍然可見（只是變小），
-        // 關掉連線就等於「一縮小就斷」，整個功能白做。
-        if (isInPictureInPictureMode()) {
-            DiagLog.i(TAG, "子母畫面中（畫面仍可見）—— 保留連線");
-            super.onStop();
-            return;
-        }
-
         closeSession();
         stopped = true;
         super.onStop();
     }
 
-    /**
-     * 按下 Home／切到別的 App 時，把鏡像縮成子母畫面繼續看。
-     *
-     * <p>這是「邊看邊用」最省事的做法：Activity 沒有被 stop（仍可見），
-     * 連線、解碼器、音訊都不用重建；使用者點一下小窗就回到全螢幕。
-     * 真正的背景執行（螢幕熄掉還要有聲音）需要前景服務，那是另一件事。
-     *
-     * <p>刻意<b>不</b>在使用者按返回時進子母畫面 —— 那是「我要離開」，
-     * 縮成小窗會讓人關不掉。
-     */
-    @Override
-    protected void onUserLeaveHint() {
-        super.onUserLeaveHint();
-        if (session == null || !session.isRunning()) return;
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return;
-        try {
-            PictureInPictureParams.Builder b = new PictureInPictureParams.Builder();
-            int w = session.videoWidth();
-            int h = session.videoHeight();
-            if (w > 0 && h > 0) b.setAspectRatio(new Rational(w, h));
-            if (enterPictureInPictureMode(b.build())) {
-                DiagLog.i(TAG, "已進入子母畫面");
-            }
-        } catch (Exception e) {
-            // 進不去就照舊（onStop 會把連線收掉），不要讓離開 App 變成閃退
-            DiagLog.w(TAG, "進不了子母畫面", e);
-        }
-    }
-
-    @Override
-    public void onPictureInPictureModeChanged(boolean inPip, Configuration config) {
-        super.onPictureInPictureModeChanged(inPip, config);
-        if (inPip) {
-            hideBarNow();
-        } else {
-            // 從子母畫面點回來：工具列先亮一下，讓使用者知道回到了全螢幕
-            showBar();
-        }
-    }
+    // 鏡像不進子母畫面：按 Home／切到別的 App 就是離開鏡像，不留小窗、也不留連線。
+    // 唯一的離開入口是工具列那顆「離開」（見 buildBar）。Home 手勢本身是系統保留的，
+    // 一般 App 攔不到，這裡能做到的是「離開就真的斷開」，而不是「縮小繼續看」。
 
     @Override
     protected void onDestroy() {
@@ -987,7 +952,8 @@ public class MirrorActivity extends Activity {
 
         // 工具列與把手要讓開狀態列與挖孔。全螢幕（immersive）下狀態列平常是隱藏的，
         // 但手指點到畫面上緣時系統會把它拉出來蓋住工具列 —— 實測「返回」會跟時鐘
-        // 疊在一起。所以這裡不問狀態列現在可不可見，直接保留它的高度。
+        // 疊在一起，挖孔機種還會把按鈕吃掉一塊。所以這裡不問狀態列現在可不可見，
+        // 直接保留它的高度。
         root.setOnApplyWindowInsetsListener((v, insets) -> {
             int top = insets.getSystemWindowInsetTop();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -1566,11 +1532,11 @@ public class MirrorActivity extends Activity {
 
         menu.getMenu().add(GROUP_SETTINGS, MENU_PASTE, 8, R.string.menu_paste);
         // 「保持常亮」在省電模式下<b>沒有作用</b>：面板已經被我們關掉了，
-        // FLAG_KEEP_SCREEN_ON 不會讓任何看得見的東西發生變化。留著可點只會讓人
+        // keep_active 的 userActivity() 不會讓它變亮。留著可點只會讓人
         // 以為這兩個設定在互相打架，所以灰掉、標題換成「（省電中）」。
         //
         // 但不能直接拿掉：它同時是「省電在某些機型上不適用」的逃生門
-        // （見 ScrcpySession 啟動 stay_awake 的說明）。
+        // （見 ScrcpySession 啟動 keep_active 的說明）。
         //
         // 標題只換成短字串，<b>不要想用換行</b>：PopupMenu 的標題 TextView 是
         // singleLine，`\n` 會被吞掉、整串變成省略號（實測「對方螢幕保持常亮 已被螢幕…」）。
@@ -2275,24 +2241,40 @@ public class MirrorActivity extends Activity {
      * 實體鍵盤直通：本機接的鍵盤／遙控器按鍵直接送到對方。
      *
      * <p>KeyEvent 的 keycode 在兩台 Android 上是同一套常數，所以不需要對照表。
-     * 但<b>系統鍵不能轉發</b>：BACK 是使用者離開鏡像的方式、HOME／多工／電源／音量
-     * 是這台手機自己的功能，轉出去會變成「按了兩件事」。
+     * 但<b>系統鍵不能轉發</b>：HOME／多工／電源／音量是這台手機自己的功能，
+     * 轉出去會變成「按了兩件事」。BACK 也不轉發 —— 它現在是本機的，
+     * 但按了只會把工具列叫回來，不會離開鏡像（見 {@link #onBackPressed()}）。
      *
      * <p>沒有這條路的話，對方沒有輸入法時完全打不了字（點輸入框連鍵盤都不會跳）。
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_BACK) {
+            // 本機返回鍵：只叫回工具列，讓使用者看得到「離開」；絕不 finish()，
+            // 也絕不轉發給對方（對方的返回在工具列上）。
+            if (event.getAction() == KeyEvent.ACTION_UP) showBar();
+            return true;
+        }
         ScrcpySession s = session;
         if (s == null || !s.isRunning()) return super.dispatchKeyEvent(event);
-        int code = event.getKeyCode();
         if (isLocalOnlyKey(code)) return super.dispatchKeyEvent(event);
         s.sendHardwareKey(event.getAction(), code, event.getRepeatCount(), event.getMetaState());
         return true;
     }
 
+    /**
+     * 手勢返回／系統返回的最後一道防線：同樣只叫回工具列，不離開。
+     * 唯一的離開入口是工具列那顆「離開」（{@code finish()}）。
+     */
+    @Override
+    public void onBackPressed() {
+        showBar();
+        // 刻意不呼叫 super.onBackPressed()：super 會 finish()。
+    }
+
     private static boolean isLocalOnlyKey(int code) {
         switch (code) {
-            case KeyEvent.KEYCODE_BACK:
             case KeyEvent.KEYCODE_HOME:
             case KeyEvent.KEYCODE_APP_SWITCH:
             case KeyEvent.KEYCODE_POWER:
@@ -2350,13 +2332,36 @@ public class MirrorActivity extends Activity {
     }
 
     private void goFullscreen() {
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        // API 30+：用 WindowInsetsController 隱藏狀態列＋導覽列，行為是
+        // 「滑一下才短暫出現」；低版本走舊的 IMMERSIVE_STICKY。
+        // 一般 App 沒有辦法把「從上緣下拉狀態列／從下緣滑出導覽列」完全禁掉，
+        // 那是系統保留的手勢（要完全鎖住需裝置擁有者／鎖定任務模式），
+        // 這裡能做到的是：平常完全隱藏、被滑出來後立刻再藏回去。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController c = getWindow().getInsetsController();
+            if (c != null) {
+                c.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                c.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        }
+    }
+
+    /** 系統列被滑出來後，把它再藏回去（見 goFullscreen 的說明）。 */
+    private final Runnable rehideSystemBars = this::goFullscreen;
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        goFullscreen();
     }
 
     // ================================================================== 連線

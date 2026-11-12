@@ -5,6 +5,45 @@
 
 格式參考 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)。
 
+## [0.5.2] - 2026-11-13
+
+進鏡像之後，本機只負責控制對方，不再有自己的狀態列、導覽列或離開捷徑。
+**簽章與 0.5.1 相同（固定 release 金鑰），可以直接覆蓋安裝，不需要先解除安裝。**
+
+### 變更
+
+- **鏡像改成沉浸式全螢幕。** 本機狀態列與導覽列在進鏡像時隱藏，畫面全部留給遠端手機。
+  Android 11+ 走 `WindowInsetsController` + `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`，
+  舊版本沿用原本的 `IMMERSIVE_STICKY`；`onResume()` 會重新貼一次，避免從別的畫面回來時
+  系統列又跑出來。
+- **離開鏡像只剩工具列那顆「離開」。** 本機返回鍵與手勢返回改成只把工具列叫回來
+  （5 秒後自動收起），不會關掉連線；硬體 BACK 也不再轉發給對方。要按對方的返回鍵，
+  用工具列上那顆「返回」。
+- **移除子母畫面。** Manifest 的 `supportsPictureInPicture`、`onUserLeaveHint()`、
+  `onPictureInPictureModeChanged()` 與 `onStop()` 的 PiP 例外都拿掉了。按 Home 或切到
+  別的 App 就是離開，`onStop()` 會斷開連線，不再留一個小窗繼續播。
+
+> Home 手勢是 Android 系統保留的，一般 App 攔不到。這裡做到的是「離開就真的斷線」，
+> 不是把 Home 鎖死；要完全鎖住得靠裝置擁有者／鎖定任務模式。
+
+### 修正
+
+- **「保持常亮」改用 scrcpy 的 `keep_active`。** 原本送 `stay_awake`，但它的實作整段在
+  scrcpy 的 `CleanUp` 裡，而本專案必須帶 `cleanup=false`，CleanUp 根本不會啟動 ——
+  實測連線後 `stay_on_while_plugged_in` 完全沒變，等於送了個無效參數。
+  `keep_active` 由伺服器每 4 秒呼叫 `PowerManager.userActivity()` 重置逾時計時器，
+  只在連線期間有效、不改任何系統設定，斷線就停。
+- **工具列／把手／錄影紅點維持讓開狀態列高度與挖孔安全區。** 貼頂時挖孔機種會把按鈕
+  吃掉一塊，狀態列被拉出來時「返回」還會跟時鐘疊在一起；這裡保留
+  `getSystemWindowInsetTop()` 與 `DisplayCutout.getSafeInsetTop()` 取最大值的做法。
+
+### 限制
+
+- 從上緣下拉狀態列、從下緣滑出導覽列是系統手勢，一般 App 無法完全禁用；能做的是
+  平常完全隱藏，被滑出來後由系統短暫顯示再自動收回。
+- 按本機返回鍵叫回的工具列 5 秒後會再收起，要離開得在這段時間內按「離開」，
+  或點右上角的 `≡` 把手把叫回來。
+
 ## [0.5.1] - 2026-10-27
 
 ### 變更

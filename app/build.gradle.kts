@@ -10,6 +10,9 @@ android {
         applicationId = "com.omniadb.client"
         minSdk = 26
         targetSdk = 34
+        // 0.5.2：鏡像改沉浸式全螢幕（本機狀態列／導覽列隱藏）、本機返回鍵只叫回
+        //        工具列、移除子母畫面；「保持常亮」改用 scrcpy 的 keep_active。
+        //        工具列／把手／紅點維持讓開狀態列與挖孔（貼頂會被挖孔擋住）。
         // 0.5.1：設置選單「畫質」與「音訊」改成相鄰（保持常亮往上挪一格）；
         //        README 補上六張截圖、主圖縮小到 240px
         // 0.5.0：首個 GitHub 公開發布版本。連線時不再自動「補 play」（暫停中的
@@ -24,8 +27,8 @@ android {
         // 0.4.0：檔案總管（SYNC 協定：列目錄／雙向傳檔）＋ 對方畫面截圖
         // 0.3.4：對方實體螢幕可關／開（設置選單），離線前自動開回
         // 0.3.3：工具列收成七顆（旋轉／跟隨／音量／電源進「設置」）、換新圖示
-        versionCode = 19
-        versionName = "0.5.1"
+        versionCode = 20
+        versionName = "0.5.2"
 
         // 實測用逃生門：`./gradlew assembleDebug -PdevSuffix` 會把包名改成
         // com.omniadb.client.dev，可以和手機上已經裝好的正式包並存。

@@ -107,7 +107,7 @@ final class Settings {
     }
 
     /**
-     * 鏡像時要不要讓<b>對方</b>螢幕保持常亮（scrcpy 的 {@code stay_awake}）。
+     * 鏡像時要不要讓<b>對方</b>螢幕保持常亮（scrcpy 的 {@code keep_active}）。
      *
      * <p>預設 true：鏡像的重點就是「看著對方」，對方自己睡著只會得到一片黑，
      * 還得伸手按電源鍵。代價是對方耗電 —— 不想要的人可以在選單裡關掉。

@@ -346,8 +346,8 @@ final class ScrcpySession implements Closeable {
 
         // ---- 2. 起伺服器 ----
         client = new AdbClient(context, host, port);
-        // 勾了「關閉螢幕省電」就一律帶 stay_awake，不管使用者的常亮偏好是什麼：
-        // 面板已經被我們關掉，keep-screen-on 不會讓它變亮，但能避免裝置進入 doze
+        // 勾了「關閉螢幕省電」就一律帶 keep_active，不管使用者的常亮偏好是什麼：
+        // 面板已經被我們關掉，userActivity 不會讓它變亮，但能避免裝置進入 doze
         // 讓編碼器停擺 —— 「省電 + 常亮關閉」這個組合沒有實測過，寧可保守。
         // 選單那邊也把這個勾灰掉了，所以不會出現「使用者想要 A、我們卻送 B」。
         boolean stayAwake = Settings.stayAwake(context) || Settings.hostScreenOff(context);

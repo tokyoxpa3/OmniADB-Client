@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B-3DDC84?logo=android&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/mirror%20audio-Host%20Android%2013%2B-blue" alt="Mirror audio (host side)">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/version-0.5.1-informational" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.5.2-informational" alt="Version">
   <a href="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml"><img src="https://github.com/tokyoxpa3/OmniADB-Client/actions/workflows/build.yml/badge.svg" alt="build"></a>
 </p>
 
@@ -22,7 +22,7 @@ The third piece of the `OmniADB` family, and the one that gets the most use:
 | Project | Role | Platform | Status |
 |---|---|---|---|
 | [`OmniADB-Host`](https://github.com/tokyoxpa3/OmniADB-Host) | Host side — keeps the ADB port pinned, comes back after reboot | Android | ✅ Released |
-| **`OmniADB-Client`** | **Controller — phone A drives phone B** | **Android** | **✅ 0.5.1** |
+| **`OmniADB-Client`** | **Controller — phone A drives phone B** | **Android** | **✅ 0.5.2** |
 | `OmniADB` (Python) | Desktop console / multi-device wall | Win / mac / Linux | ⏸ Shelved |
 
 ## The problem
@@ -115,8 +115,17 @@ tap **Mirror**.
 
 A single auto-hiding toolbar at the top, **seven buttons only**: Back / Home / Recents /
 Sound / Keyboard / Settings / Exit. It collapses after 5 seconds; tap `≡` in the corner to
-bring it back. The system back button is deliberately left alone — it's the most natural way
-to leave the mirror.
+bring it back. The controller's status bar and navigation bar are hidden (immersive), so the
+whole screen belongs to the remote phone.
+
+**The only way out is the toolbar's Exit button.** The controller's back button and back gesture
+just bring the toolbar back — they don't leave the mirror, and BACK isn't forwarded to the host
+either (use the toolbar's Back for that). Picture-in-picture is gone: pressing Home really
+disconnects instead of leaving a floating window.
+
+> Swiping the status bar down from the top edge or the navigation bar up from the bottom is a
+> system-reserved gesture no ordinary app can fully block. They stay hidden by default and the
+> system shows them only briefly when swiped out.
 
 **The "Settings" menu** has two sections (actions on the host, then client-side settings):
 
@@ -161,7 +170,8 @@ Some of these are Android's hard limits, not missing features:
 ## Known issues
 
 - **No foreground service**: switching away from the app during a transfer closes the
-  connection (`onStop`), so long transfers need it; mirroring currently relies on PiP only
+  connection (`onStop`), so long transfers need it; mirroring also disconnects on leave
+  (picture-in-picture was removed in 0.5.2)
 - Clipboard: `ClipData` images and files are not handled
 - When the Xiaomi installer's countdown wins, the dialog only explains why — no "retry" yet
 - File manager is missing drag-to-move, video thumbnails, and a size/date preview before overwriting
